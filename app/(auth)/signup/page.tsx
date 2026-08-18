@@ -1,0 +1,8 @@
+import Link from "next/link";
+import { Check, Zap } from "lucide-react";
+import { signup } from "@/app/auth/actions";
+
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
+  return <div className="auth-shell"><section className="auth-intro"><div className="auth-brand"><span><Zap fill="currentColor" /></span>QuizForge</div><div><p className="auth-kicker">BUILD YOUR EDGE</p><h1>Start a practice habit that sticks.</h1><p>Ten thoughtful questions a day. Clear explanations. Progress you can see.</p><ul><li><Check /> Daily mixed-category rounds</li><li><Check /> XP, streaks, and personal accuracy</li><li><Check /> Targeted subject practice</li></ul></div></section><section className="auth-form"><div><p className="auth-kicker">CREATE YOUR ACCOUNT</p><h2>Join QuizForge</h2><p>Free to practice. Built for Quiz Bowl.</p>{error && <div className="auth-alert error">{error}</div>}<form action={signup}><label>Display name<input name="displayName" required maxLength={40} placeholder="Ada Lovelace" /></label><label>Username<input name="username" required minLength={3} maxLength={24} pattern="[A-Za-z0-9_]+" autoComplete="username" placeholder="ada_quizzes" /></label><label>Email<input name="email" type="email" autoComplete="email" required placeholder="you@example.com" /></label><label>Password<input name="password" type="password" autoComplete="new-password" minLength={8} required placeholder="At least 8 characters" /></label><button className="primary" type="submit">Create account <Zap /></button></form><p className="auth-switch">Already have an account? <Link href="/login">Sign in</Link></p></div></section></div>;
+}
