@@ -1,0 +1,42 @@
+{
+  "title": "Choose the dashboard composition",
+  "question": "The Practice Archive identity is fixed. Choose the dashboard structure that should carry across the platform.",
+  "options": [
+    {
+      "id": "archive-grid",
+      "label": "Archive Grid",
+      "kicker": "ORIGINAL COMP",
+      "lineage": "labeled archive wall",
+      "thesis": "A wide daily edition leads into a compact grid of subject records.",
+      "palette": ["#F7F4EE", "#121212", "#E54213", "#165ED7"],
+      "materials": ["tissue-white sheet", "ink rules", "edition labels"],
+      "viewport": "A horizontal daily set and progress counter sit above a three-column subject collection.",
+      "risk": "The lower grid can read as card-heavy if borders become too prominent.",
+      "comp": ".impeccable/mocks/decision/challenger-archive.png"
+    },
+    {
+      "id": "archive-spine",
+      "label": "Archive Spine",
+      "lineage": "edition spine and catalog ledger",
+      "thesis": "A tall daily edition anchors a dense performance ledger and subject table.",
+      "palette": ["#F7F4EE", "#121212", "#E54213", "#165ED7"],
+      "materials": ["edition spine", "catalog rows", "ruled ledger"],
+      "viewport": "The daily set occupies the left third while progress and all subject editions scan in one compact column.",
+      "risk": "The tall orange field has less flexibility on narrow laptop heights.",
+      "comp": ".impeccable/mocks/platform-archive-spine.png"
+    },
+    {
+      "id": "open-edition",
+      "label": "Open Edition",
+      "lineage": "opened archive label and two-column index",
+      "thesis": "A wide open daily edition keeps the task dominant while the category archive becomes a calm list.",
+      "palette": ["#F7F4EE", "#121212", "#E54213", "#165ED7"],
+      "materials": ["open label", "index table", "metadata strip"],
+      "viewport": "A split daily sheet leads, followed by a ruled performance strip and two-column category index.",
+      "risk": "The compact category list gives recommendations less room for explanatory copy.",
+      "comp": ".impeccable/mocks/platform-open-edition.png"
+    }
+  ],
+  "buildPath": {"value": "comp", "toggle": false},
+  "steer": false
+}

@@ -1,0 +1,104 @@
+{
+  "title": "Choose QuizForge's new visual system",
+  "question": "Choose the direction that should define every QuizForge screen, or re-roll for a different set.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Tournament Scorebook",
+      "kicker": "THE ROLL",
+      "lineage": "official match packets and collegiate score sheets",
+      "thesis": "QuizForge becomes the calm, precise scorekeeper for a student's daily practice.",
+      "palette": ["#F7F8FA", "#111827", "#1E5EFF", "#F2B84B", "#DDE7E3"],
+      "materials": ["crisp white stock", "hairline rules", "tabular score ink"],
+      "viewport": "A compact navigation rail frames one dominant daily round, a ruled performance strip, and clearly ranked next actions.",
+      "risk": "Can feel institutional if the typography and encouraging states are not warm enough.",
+      "raised": [
+        {"from": "Depth Profile", "raise": "Every practice flow gets one unmistakable axis from current position to next goal."},
+        {"from": "Cutting Bench", "raise": "Completed work and the exact return point remain visibly marked."},
+        {"from": "Festival Billing", "raise": "Hierarchy is carried by scale and alignment before containers or decoration."}
+      ],
+      "comp": ".impeccable/mocks/decision/assigned.png"
+    },
+    {
+      "id": "model-pick",
+      "label": "Academic Field Notes",
+      "kicker": "IMPECCABLE'S PICK",
+      "lineage": "modern field guides and annotated study notebooks",
+      "thesis": "Practice feels like building a personal reference book one confident answer at a time.",
+      "palette": ["#FBFBF8", "#18211E", "#176B57", "#E35D4F", "#C9D8FF"],
+      "materials": ["uncoated page white", "margin notation", "subject tabs"],
+      "viewport": "An editorial dashboard uses a strong reading column, disciplined margin notes, and category tabs as functional wayfinding.",
+      "risk": "Editorial study tools are familiar, so weak execution could feel like a polished template.",
+      "comp": ".impeccable/mocks/decision/model-pick.png"
+    },
+    {
+      "id": "challenger-archive",
+      "label": "Practice Archive",
+      "verdict": "competitive",
+      "lineage": "sneaker archive walls and labeled collection boxes",
+      "thesis": "Each subject becomes a clearly labeled practice edition that students can pull forward and open.",
+      "palette": ["#F4F1EB", "#191919", "#D85D35", "#3A6EA5", "#F9F9F7"],
+      "materials": ["box-board labels", "edition stamps", "colorway chips"],
+      "viewport": "A clean shelf of subject editions leads to a pulled-forward daily set and an open answer workspace.",
+      "case": "Strong student identification and memorable categories, with slightly less immediate progress clarity than the scorebook.",
+      "risk": "The collection metaphor can add visual weight to simple repeat actions.",
+      "comp": ".impeccable/mocks/decision/challenger-archive.png",
+      "hero": "https://impeccable.style/worlds/cards/textiles-weave-drape-fashion-sneaker-box-stacks-hero.webp"
+    },
+    {
+      "id": "challenger-data",
+      "label": "Recall Matrix",
+      "verdict": "competitive",
+      "lineage": "precision data graphics and competition analytics",
+      "thesis": "Recall becomes a crisp field of measurable signals with the next useful action always in focus.",
+      "palette": ["#FFFFFF", "#090909", "#2E6BFF", "#B8FF5A"],
+      "materials": ["pixel-crisp rules", "tabular numerics", "signal markers"],
+      "viewport": "A high-contrast dashboard ranks the daily task above a dense but readable mastery matrix and score history.",
+      "case": "Exceptional product clarity and modernity, but less warmth for younger students than the grounded directions.",
+      "risk": "Strict data density may feel intense during low-stakes daily practice.",
+      "comp": ".impeccable/mocks/decision/challenger-data.png",
+      "hero": "https://impeccable.style/worlds/cards/ikeda-datamatics-hero.webp"
+    },
+    {
+      "id": "challenger-bulletin",
+      "label": "Varsity Bulletin",
+      "verdict": "competitive",
+      "lineage": "type-led school event posters and tournament programs",
+      "thesis": "A confident typographic bulletin makes the day's challenge feel important without making it theatrical.",
+      "palette": ["#F7F3E8", "#151515", "#D94235", "#2E5EAA"],
+      "materials": ["single-sheet layout", "bold rule work", "program ink"],
+      "viewport": "The daily challenge leads like a headline, with progress and categories arranged in a strict supporting bill.",
+      "case": "Strong student energy and hierarchy, though repeated operational screens require careful restraint.",
+      "risk": "Oversized type could reduce scanning efficiency on dense progress and profile screens.",
+      "comp": ".impeccable/mocks/decision/challenger-bulletin.png",
+      "hero": "https://impeccable.style/worlds/cards/posters-covers-sleeves-festival-lineup-poster-hero.webp"
+    },
+    {
+      "id": "challenger-console",
+      "label": "Memory Rooms",
+      "verdict": "declined",
+      "lineage": "ambient console system menus",
+      "thesis": "Practice areas float as quiet memory objects in a dark spatial field.",
+      "palette": ["#090D14", "#EAF0F5", "#E5A93D"],
+      "materials": ["soft ambient light", "depth", "translucent objects"],
+      "viewport": "The active practice object brightens while other areas recede into the surrounding space.",
+      "case": "Distinctive atmosphere, but both audience identification and task clarity lose to the scorebook.",
+      "risk": "Spatial motion and darkness undermine the requested minimal, high-trust study experience.",
+      "kept": "The active task should dominate while secondary controls visibly recede.",
+      "hero": "https://impeccable.style/worlds/cards/digital-design-canon-console-dashboard-atmosphere-hero.webp"
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "buildPath": {"value": "comp", "toggle": true},
+  "canon": true,
+  "canonCard": {
+    "label": "The category standard",
+    "thesis": "A familiar modern learning dashboard, executed with excellent spacing and accessibility.",
+    "palette": ["#FFFFFF", "#111827", "#2563EB", "#EEF2FF"],
+    "materials": ["clean grid", "soft neutral panels", "standard progress bars"],
+    "viewport": "A conventional sidebar dashboard with a welcome header, primary challenge card, and metric tiles.",
+    "risk": "Clear and usable, but intentionally difficult to distinguish from other learning products.",
+    "comp": ".impeccable/mocks/decision/canon.png"
+  },
+  "steer": true
+}

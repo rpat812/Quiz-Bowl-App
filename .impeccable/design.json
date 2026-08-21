@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-20T23:37:22.279Z",
+  "title": "Design System: QuizForge Practice Archive",
+  "extensions": {
+    "colorMeta": {
+      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#f7f4ef", "tonalRamp": ["oklch(15% 0.006 78)", "oklch(27% 0.006 78)", "oklch(39% 0.006 78)", "oklch(51% 0.006 78)", "oklch(63% 0.006 78)", "oklch(75% 0.006 78)", "oklch(87% 0.006 78)", "oklch(95% 0.006 78)"] },
+      "tissue": { "role": "neutral", "displayName": "Tissue", "canonical": "#f9f7f3", "tonalRamp": ["oklch(15% 0.005 78)", "oklch(27% 0.005 78)", "oklch(39% 0.005 78)", "oklch(51% 0.005 78)", "oklch(63% 0.005 78)", "oklch(75% 0.005 78)", "oklch(87% 0.005 78)", "oklch(95% 0.005 78)"] },
+      "white": { "role": "neutral", "displayName": "White", "canonical": "#fff", "tonalRamp": ["oklch(15% 0 0)", "oklch(27% 0 0)", "oklch(39% 0 0)", "oklch(51% 0 0)", "oklch(63% 0 0)", "oklch(75% 0 0)", "oklch(87% 0 0)", "oklch(95% 0 0)"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#171717", "tonalRamp": ["oklch(15% 0 0)", "oklch(27% 0 0)", "oklch(39% 0 0)", "oklch(51% 0 0)", "oklch(63% 0 0)", "oklch(75% 0 0)", "oklch(87% 0 0)", "oklch(95% 0 0)"] },
+      "navigation-ink": { "role": "neutral", "displayName": "Navigation Ink", "canonical": "#121212", "tonalRamp": ["oklch(15% 0 0)", "oklch(27% 0 0)", "oklch(39% 0 0)", "oklch(51% 0 0)", "oklch(63% 0 0)", "oklch(75% 0 0)", "oklch(87% 0 0)", "oklch(95% 0 0)"] },
+      "muted-ink": { "role": "neutral", "displayName": "Muted Ink", "canonical": "#66645f", "tonalRamp": ["oklch(15% 0.008 78)", "oklch(27% 0.008 78)", "oklch(39% 0.008 78)", "oklch(51% 0.008 78)", "oklch(63% 0.008 78)", "oklch(75% 0.008 78)", "oklch(87% 0.008 78)", "oklch(95% 0.008 78)"] },
+      "soft-ink": { "role": "neutral", "displayName": "Soft Ink", "canonical": "#8a867f", "tonalRamp": ["oklch(15% 0.01 78)", "oklch(27% 0.01 78)", "oklch(39% 0.01 78)", "oklch(51% 0.01 78)", "oklch(63% 0.01 78)", "oklch(75% 0.01 78)", "oklch(87% 0.01 78)", "oklch(95% 0.01 78)"] },
+      "rule": { "role": "neutral", "displayName": "Rule", "canonical": "#d6d0c7", "tonalRamp": ["oklch(15% 0.012 78)", "oklch(27% 0.012 78)", "oklch(39% 0.012 78)", "oklch(51% 0.012 78)", "oklch(63% 0.012 78)", "oklch(75% 0.012 78)", "oklch(87% 0.012 78)", "oklch(95% 0.012 78)"] },
+      "rule-dark": { "role": "neutral", "displayName": "Dark Rule", "canonical": "#393939", "tonalRamp": ["oklch(15% 0 0)", "oklch(27% 0 0)", "oklch(39% 0 0)", "oklch(51% 0 0)", "oklch(63% 0 0)", "oklch(75% 0 0)", "oklch(87% 0 0)", "oklch(95% 0 0)"] },
+      "archive-orange": { "role": "primary", "displayName": "Archive Orange", "canonical": "#cd451a", "tonalRamp": ["oklch(15% 0.12 38)", "oklch(27% 0.14 38)", "oklch(39% 0.16 38)", "oklch(51% 0.18 38)", "oklch(63% 0.16 38)", "oklch(75% 0.12 38)", "oklch(87% 0.07 38)", "oklch(95% 0.03 38)"] },
+      "archive-orange-dark": { "role": "primary", "displayName": "Archive Orange Dark", "canonical": "#a93412", "tonalRamp": ["oklch(15% 0.12 37)", "oklch(27% 0.14 37)", "oklch(39% 0.16 37)", "oklch(51% 0.18 37)", "oklch(63% 0.16 37)", "oklch(75% 0.12 37)", "oklch(87% 0.07 37)", "oklch(95% 0.03 37)"] },
+      "index-blue": { "role": "secondary", "displayName": "Index Blue", "canonical": "#024ec9", "tonalRamp": ["oklch(15% 0.13 258)", "oklch(27% 0.16 258)", "oklch(39% 0.19 258)", "oklch(51% 0.21 258)", "oklch(63% 0.18 258)", "oklch(75% 0.13 258)", "oklch(87% 0.07 258)", "oklch(95% 0.03 258)"] },
+      "index-blue-dark": { "role": "secondary", "displayName": "Deep Index Blue", "canonical": "#0f4cb1", "tonalRamp": ["oklch(15% 0.12 258)", "oklch(27% 0.15 258)", "oklch(39% 0.18 258)", "oklch(51% 0.2 258)", "oklch(63% 0.17 258)", "oklch(75% 0.12 258)", "oklch(87% 0.07 258)", "oklch(95% 0.03 258)"] },
+      "success-forest": { "role": "tertiary", "displayName": "Success Forest", "canonical": "#2f6f57", "tonalRamp": ["oklch(15% 0.06 160)", "oklch(27% 0.08 160)", "oklch(39% 0.1 160)", "oklch(51% 0.11 160)", "oklch(63% 0.1 160)", "oklch(75% 0.08 160)", "oklch(87% 0.05 160)", "oklch(95% 0.02 160)"] },
+      "error-brick": { "role": "tertiary", "displayName": "Error Brick", "canonical": "#a33e2e", "tonalRamp": ["oklch(15% 0.08 30)", "oklch(27% 0.1 30)", "oklch(39% 0.12 30)", "oklch(51% 0.14 30)", "oklch(63% 0.12 30)", "oklch(75% 0.09 30)", "oklch(87% 0.05 30)", "oklch(95% 0.02 30)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page-level dashboard, authentication, and results headings only." },
+      "headline": { "displayName": "Headline", "purpose": "Dominant statements inside feature regions such as the daily edition." },
+      "title": { "displayName": "Title", "purpose": "Compact panel, recommendation, and record headings." },
+      "body": { "displayName": "Body", "purpose": "Questions, explanations, instructions, supporting copy, and field values." },
+      "label": { "displayName": "Label", "purpose": "Uppercase metadata, actions, breadcrumbs, tabs, and field labels." }
+    },
+    "shadows": [
+      { "name": "practice-sheet", "value": "0 12px 28px rgb(23 23 23 / 7%)", "purpose": "Minimal ambient lift for the active question sheet on larger screens; removed at 640px." },
+      { "name": "selected-record", "value": "inset 0 3px #024ec9", "purpose": "Structural selection marker for the current learner's leaderboard row." }
+    ],
+    "motion": [
+      { "name": "state-transition", "value": "140ms ease", "purpose": "Color, border, text, and one-pixel transform changes when reduced motion is not requested." }
+    ],
+    "breakpoints": [
+      { "name": "wide-compact", "value": "1120px" },
+      { "name": "navigation-collapse", "value": "900px" },
+      { "name": "auth-stack", "value": "760px" },
+      { "name": "mobile", "value": "640px" },
+      { "name": "small-form", "value": "520px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "High-contrast command for the single dominant action in a practice region.",
+      "html": "<button class=\"ds-btn-primary\">START PRACTICE <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></button>",
+      "css": ".ds-btn-primary { min-width: 176px; height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 0 19px; border: 1px solid var(--nav); border-radius: 2px; background: var(--nav); color: #fff; font-family: var(--display); font-size: 13px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease; } .ds-btn-primary svg { width: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } .ds-btn-primary:hover { filter: brightness(.94); transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 3px solid rgb(2 78 201 / 24%); outline-offset: 2px; } .ds-btn-primary:active { transform: translateY(0); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ruled companion action that remains subordinate to the main command.",
+      "html": "<button class=\"ds-btn-secondary\">VIEW PROGRESS <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></button>",
+      "css": ".ds-btn-secondary { height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 0 19px; border: 1px solid var(--ink); border-radius: 2px; background: transparent; color: var(--ink); font-family: var(--display); font-size: 13px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; transition: background-color 140ms ease, color 140ms ease; } .ds-btn-secondary svg { width: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } .ds-btn-secondary:hover { background: var(--ink); color: #fff; } .ds-btn-secondary:focus-visible { outline: 3px solid rgb(2 78 201 / 24%); outline-offset: 2px; } .ds-btn-secondary:active { background: var(--nav); }"
+    },
+    {
+      "name": "Labeled Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Persistent archive label and high-contrast answer or account field.",
+      "html": "<label class=\"ds-field\">YOUR ANSWER<input placeholder=\"Type your answer\" /></label>",
+      "css": ".ds-field { display: block; color: var(--ink); font-family: var(--display); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; } .ds-field input { width: 100%; height: 50px; display: block; margin-top: 7px; padding: 0 14px; border: 1px solid #99958d; border-radius: 2px; background: #fff; color: var(--ink); font-family: var(--body); font-size: 14px; text-transform: none; transition: border-color 140ms ease; } .ds-field input:hover { border-color: var(--ink); } .ds-field input:focus-visible { border-color: var(--blue); outline: 3px solid rgb(2 78 201 / 16%); outline-offset: 0; }"
+    },
+    {
+      "name": "Edition Card",
+      "kind": "card",
+      "refersTo": "edition-card",
+      "description": "Numbered subject record with a functional category edge and compact score.",
+      "html": "<button class=\"ds-edition-card\"><span class=\"ds-edition-number\"><small>EDITION</small>03</span><span class=\"ds-edition-copy\"><strong>LITERATURE</strong><small>54 questions</small></span><b>68%</b><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></button>",
+      "css": ".ds-edition-card { position: relative; width: 100%; min-height: 92px; display: grid; grid-template-columns: 76px 1fr auto 22px; align-items: center; gap: 14px; padding: 14px 15px 14px 18px; border: 1px solid #8d8981; background: var(--surface); color: var(--ink); text-align: left; transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease; } .ds-edition-card::before { content: ''; position: absolute; inset: -1px auto -1px -1px; width: 5px; background: var(--orange); } .ds-edition-number { display: flex; flex-direction: column; font-family: var(--display); font-size: 36px; font-weight: 700; line-height: .8; font-variant-numeric: tabular-nums; } .ds-edition-number small { margin-bottom: 6px; font-size: 9px; letter-spacing: .08em; } .ds-edition-copy { display: flex; flex-direction: column; } .ds-edition-copy strong { font-family: var(--display); font-size: 17px; letter-spacing: .04em; } .ds-edition-copy small { margin-top: 4px; color: var(--muted); font-family: var(--body); font-size: 10px; } .ds-edition-card > b { font-family: var(--display); font-size: 17px; } .ds-edition-card svg { width: 17px; fill: none; stroke: currentColor; stroke-width: 2; } .ds-edition-card:hover { border-color: var(--ink); background: #fff; transform: translateY(-1px); } .ds-edition-card:focus-visible { outline: 3px solid rgb(2 78 201 / 24%); outline-offset: 2px; } .ds-edition-card:active { transform: translateY(0); }"
+    },
+    {
+      "name": "Daily Ledger",
+      "kind": "custom",
+      "refersTo": "daily-ledger",
+      "description": "Adjacent progress record with fixed question segments and a tabular count.",
+      "html": "<section class=\"ds-daily-ledger\"><span>TODAY</span><strong>4/10</strong><b>COMPLETED</b><div aria-label=\"4 of 10 complete\"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>Keep the record moving</small></section>",
+      "css": ".ds-daily-ledger { min-height: 220px; display: flex; flex-direction: column; padding: 24px 20px; border: 1px solid var(--ink); background: var(--surface); color: var(--ink); } .ds-daily-ledger > span, .ds-daily-ledger > b { font-family: var(--display); font-size: 12px; font-weight: 700; letter-spacing: .08em; } .ds-daily-ledger > strong { margin-top: 16px; font-family: var(--display); font-size: 52px; line-height: .9; font-variant-numeric: tabular-nums; } .ds-daily-ledger > b { margin-top: 7px; font-size: 14px; } .ds-daily-ledger > div { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin: 24px 0; } .ds-daily-ledger i { aspect-ratio: 1; border: 1px solid #77746e; } .ds-daily-ledger i:nth-child(-n+4) { border-color: var(--blue); background: var(--blue); } .ds-daily-ledger > small { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--rule); color: var(--muted); font-family: var(--body); font-size: 11px; }"
+    },
+    {
+      "name": "Desktop Navigation",
+      "kind": "nav",
+      "description": "Dark authenticated rail with an indexed active destination.",
+      "html": "<nav class=\"ds-nav\"><strong>QUIZFORGE <i></i></strong><button class=\"ds-active\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m3 11 9-8 9 8v10h-6v-6H9v6H3Z\"/></svg>DASHBOARD</button><button><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 5h16v14H4zM8 9h8M8 13h8\"/></svg>CATEGORIES</button><button><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 19V9M12 19V5M19 19v-7\"/></svg>PROGRESS</button></nav>",
+      "css": ".ds-nav { width: 238px; min-height: 360px; display: grid; align-content: start; padding: 34px 24px; background: var(--nav); color: #fff; } .ds-nav > strong { display: flex; align-items: center; gap: 9px; margin-bottom: 48px; font-family: var(--display); font-size: 29px; font-weight: 800; } .ds-nav > strong i { width: 16px; height: 16px; background: var(--orange); } .ds-nav button { position: relative; height: 48px; display: flex; align-items: center; gap: 13px; padding: 0 12px; border: 0; background: transparent; color: #a9a8a3; font-family: var(--display); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-align: left; transition: color 140ms ease; } .ds-nav button::before { content: ''; position: absolute; inset: 9px auto 9px -24px; width: 4px; } .ds-nav button.ds-active::before { background: var(--blue); } .ds-nav button:hover, .ds-nav button.ds-active { color: #fff; } .ds-nav button:focus-visible { outline: 2px solid #fff; outline-offset: -2px; } .ds-nav svg { width: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }"
+    },
+    {
+      "name": "Archive Tabs",
+      "kind": "chip",
+      "description": "Ruled period switcher with a blue indexed selection state.",
+      "html": "<div class=\"ds-tabs\" role=\"tablist\"><button role=\"tab\" aria-selected=\"true\">THIS WEEK</button><button role=\"tab\" aria-selected=\"false\">ALL TIME</button></div>",
+      "css": ".ds-tabs { display: flex; border-bottom: 1px solid var(--ink); } .ds-tabs button { min-height: 44px; padding: 0 20px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); font-family: var(--display); font-size: 12px; font-weight: 700; letter-spacing: .06em; } .ds-tabs button[aria-selected='true'] { border-color: var(--blue); color: var(--ink); } .ds-tabs button:hover { color: var(--ink); } .ds-tabs button:focus-visible { outline: 3px solid rgb(2 78 201 / 20%); outline-offset: -3px; } .ds-tabs button:active { background: #e7eef9; }"
+    },
+    {
+      "name": "Correct Feedback",
+      "kind": "custom",
+      "description": "Explicit correct-answer state with icon, text label, and bordered explanation.",
+      "html": "<section class=\"ds-feedback\"><header><span><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m5 12 4 4L19 6\"/></svg></span><div><small>CORRECT / +10 XP</small><h3>Nice recall.</h3></div></header><div><strong>WHY IT MATTERS</strong><p>The explanation records the useful connection in clear, readable body text.</p></div></section>",
+      "css": ".ds-feedback { color: var(--ink); } .ds-feedback header { display: flex; align-items: center; gap: 13px; } .ds-feedback header > span { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--forest); color: var(--forest); } .ds-feedback svg { width: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } .ds-feedback small, .ds-feedback strong { color: var(--forest); font-family: var(--display); font-size: 11px; font-weight: 700; letter-spacing: .1em; } .ds-feedback h3 { margin: 3px 0 0; font-family: var(--display); font-size: 25px; } .ds-feedback > div { margin-top: 24px; padding: 18px 20px; border: 1px solid #bfd0c6; border-top: 3px solid var(--forest); background: #e8eee9; } .ds-feedback > div strong { color: var(--ink); } .ds-feedback p { margin: 6px 0 0; color: #4f514e; font-family: var(--body); font-size: 14px; line-height: 1.7; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Practice Archive",
+    "overview": "QuizForge treats daily study as a trusted, accumulating record. The visual world combines the clarity of a labeled collection, the confidence of a tournament program, and the utility of a serious study tool. Numbered editions, precise rules, compact metadata, and tabular measures make progress feel recorded rather than merely decorated.\n\nThe archive reference stays flat and digital. Warm paper grounds the experience; an ink-black rail gives authenticated screens a stable spine; archive orange identifies the featured daily set; index blue marks selection, progress, and links. Warmth comes through plainspoken copy, generous breathing room, and controlled color rather than illustration or soft effects.",
+    "keyCharacteristics": [
+      "Flat, warm work surfaces framed by dark navigation and precise rules.",
+      "Condensed, uppercase metadata paired with calm, highly legible body copy.",
+      "Numbered subject editions and segmented progress as recurring identity devices.",
+      "One dominant practice action per screen, with supporting records kept compact.",
+      "Functional color, explicit state feedback, and restrained motion."
+    ],
+    "rules": [
+      { "name": "The Functional Ink Rule", "body": "Orange announces the featured practice object; blue marks navigation, selection, and progress. Do not swap their jobs for variety.", "section": "colors" },
+      { "name": "The Solid Field Rule", "body": "Large color fields are solid. Gradients, glows, translucent blobs, and decorative color haze do not belong in this system.", "section": "colors" },
+      { "name": "The Two-Voice Rule", "body": "Barlow Condensed identifies and organizes; Inter explains and supports. Do not set long-form reading text in the condensed face.", "section": "typography" },
+      { "name": "The Earned Scale Rule", "body": "Hero-scale type belongs to page-level headings. Panels and repeated records remain compact enough to scan.", "section": "typography" },
+      { "name": "The One Scan Rule", "body": "The primary action, current record, and next practice path must remain legible in one scan at every breakpoint.", "section": "layout" },
+      { "name": "The Flat-by-Default Rule", "body": "No dashboard section receives a shadow merely to become a card. Use rules, alignment, or a semantic color field first.", "section": "elevation" },
+      { "name": "The Shape Means Role Rule", "body": "Rectangles hold work and records; circles identify people. Do not turn text actions, tabs, filters, or labels into pills.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do use numbering, short uppercase labels, strong rules, and tabular metrics to make practice feel indexed and trustworthy.",
+      "Do keep one dominant task per screen and align supporting information into compact records.",
+      "Do reserve orange for featured practice and blue for selection, navigation, focus, and progress.",
+      "Do preserve visible focus, explicit labels, non-color feedback, stable touch targets, responsive wrapping, and reduced-motion behavior.",
+      "Do let mobile reorganize the hierarchy rather than merely shrink desktop tracks."
+    ],
+    "donts": [
+      "Don't literalize the archive with cardboard texture, perspective, three-dimensional boxes, or ornamental nostalgia.",
+      "Don't introduce gradients, glows, translucent blobs, ambient motion, or decorative image fields.",
+      "Don't float page sections as decorative cards or nest cards inside cards.",
+      "Don't soften controls into pills or apply large radii to repeated records.",
+      "Don't invent photography, illustration, testimonials, or proof assets that the product does not have."
+    ]
+  }
+}
