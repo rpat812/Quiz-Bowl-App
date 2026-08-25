@@ -6,9 +6,39 @@ import "@fontsource/barlow-condensed/800.css";
 import "./globals.css";
 import "./auth.css";
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:3000");
+
 export const metadata: Metadata = {
-  title: "QuizForge - Daily Quiz Bowl Practice",
-  description: "Build Quiz Bowl mastery one clue at a time.",
+  metadataBase: new URL(siteUrl),
+  title: "QuizForge — Daily Quiz Bowl Practice",
+  description: "Daily quiz bowl practice with streaks, XP, and weak-area review.",
+  openGraph: {
+    type: "website",
+    title: "QuizForge — Daily Quiz Bowl Practice",
+    description: "Daily quiz bowl practice with streaks, XP, and weak-area review.",
+    url: "/",
+    siteName: "QuizForge",
+    images: [
+      {
+        url: "/quizforge-og.png",
+        width: 1200,
+        height: 630,
+        alt: "QuizForge — daily quiz bowl practice with streaks, XP, and weak-area review",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "QuizForge — Daily Quiz Bowl Practice",
+    description: "Daily quiz bowl practice with streaks, XP, and weak-area review.",
+    images: ["/quizforge-og.png"],
+  },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
