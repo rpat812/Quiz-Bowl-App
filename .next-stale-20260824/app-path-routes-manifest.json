@@ -1,0 +1,10 @@
+{
+  "/api/progress/complete/route": "/api/progress/complete",
+  "/api/questions/check/route": "/api/questions/check",
+  "/api/questions/session/route": "/api/questions/session",
+  "/auth/callback/route": "/auth/callback",
+  "/_not-found/page": "/_not-found",
+  "/page": "/",
+  "/(auth)/signup/page": "/signup",
+  "/(auth)/login/page": "/login"
+}
