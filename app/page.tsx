@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   ArrowRight, BarChart3, BookOpen, Check, ChevronRight, CircleHelp,
-  Flame, Home as HomeIcon, Library, Settings, Target, Trophy, User, X, Zap,
+  Flame, Home as HomeIcon, Library, LoaderCircle, Settings, Target, Trophy, User, X, Zap,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { isCorrectAnswer, questions as qs, type QuizQuestion as Q } from "@/lib/question-bank";
@@ -13,6 +13,14 @@ import type { AnswerCheck, PracticeQuestion } from "@/types/questions";
 type View = "home" | "practice" | "categories" | "progress" | "leaders" | "profile" | "results";
 type Question = Q | PracticeQuestion;
 type Answer = { questionId: string; correct: boolean; submitted: string };
+type LeaderboardPeriod = "weekly" | "all_time";
+type LeaderboardEntry = {
+  rank: number;
+  display_name: string;
+  username: string;
+  xp: number;
+  is_current_user: boolean;
+};
 
 function isDatabaseQuestion(question: Question): question is PracticeQuestion {
   return "questionType" in question;
@@ -20,6 +28,18 @@ function isDatabaseQuestion(question: Question): question is PracticeQuestion {
 
 function formatDays(value: number) {
   return `${value} day${value === 1 ? "" : "s"}`;
+}
+
+async function readApiResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (!contentType.includes("application/json")) {
+    throw new Error(response.ok ? fallbackMessage : `${fallbackMessage} (server error ${response.status})`);
+  }
+
+  const data = await response.json() as T & { error?: string };
+  if (!response.ok) throw new Error(data.error || fallbackMessage);
+  return data;
 }
 
 const categories = [
@@ -120,8 +140,7 @@ export default function App() {
       const response = await fetch("/api/questions/session?category=History&count=10", {
         cache: "no-store",
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Questions could not be loaded.");
+      const data = await readApiResponse<{ questions: PracticeQuestion[] }>(response, "Questions could not be loaded.");
       const questions = data.questions as PracticeQuestion[];
       if (!questions.length) throw new Error("No published History questions are available.");
       setQuestionSet(questions);
@@ -145,9 +164,7 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ questionId: question.id, submitted: input }),
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Your answer could not be checked.");
-        result = data as AnswerCheck;
+        result = await readApiResponse<AnswerCheck>(response, "Your answer could not be checked.");
       } else {
         result = {
           correct: isCorrectAnswer(question, input),
@@ -184,8 +201,7 @@ export default function App() {
           answers: answers.map(({ questionId, submitted }) => ({ questionId, submitted })),
         }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Progress could not be saved.");
+      const data = await readApiResponse<{ profile: Stats; xpEarned: number }>(response, "Progress could not be saved.");
       setStats(data.profile as Stats);
       setSessionXp(data.xpEarned);
       go("results");
@@ -251,7 +267,7 @@ export default function App() {
           {view === "practice" && <Practice q={questionSet[questionIndex]} i={questionIndex} total={questionSet.length} title={title} input={input} setInput={setInput} feedback={feedback} submit={submit} next={next} saving={saving} checking={checking} loading={loadingQuestions} error={questionError} exit={() => go("home")} />}
           {view === "categories" && <Categories start={start} />}
           {view === "progress" && <Progress stats={stats} accuracy={accuracy} />}
-          {view === "leaders" && <Leaders xp={stats.xp} />}
+          {view === "leaders" && <Leaders />}
           {view === "profile" && <Profile stats={stats} accuracy={accuracy} profile={profile} save={saveProfile} signOut={signOut} />}
           {view === "results" && <Results answers={answers} daily={title === "Daily practice"} xp={sessionXp} start={start} home={() => go("home")} />}
         </div>
@@ -348,14 +364,22 @@ function Practice({
   error: string;
   exit: () => void;
 }) {
+  if (loading && !q) {
+    return <div className="assessment-loading" role="status" aria-live="polite" aria-busy="true">
+      <LoaderCircle aria-hidden="true" />
+      <strong>Loading assessment...</strong>
+      <span>Preparing your first question</span>
+    </div>;
+  }
+
   if (!q) {
     return <div className="practice">
       <div className="practice-top"><button onClick={exit} aria-label="Exit practice" title="Exit practice"><X /></button><div><span>{title}</span></div><strong>00 / 00</strong></div>
       <article className="question-sheet question-state" aria-live="polite">
         <BookOpen />
-        <h1>{loading ? "Opening the History archive." : "This edition could not be opened."}</h1>
-        <p>{loading ? "Selecting ten questions across eras, regions, and formats." : error || "No questions are available for this edition."}</p>
-        {!loading && <button className="secondary" onClick={exit}>Back to dashboard</button>}
+        <h1>This edition could not be opened.</h1>
+        <p>{error || "No questions are available for this edition."}</p>
+        <button className="secondary" onClick={exit}>Back to dashboard</button>
       </article>
     </div>;
   }
@@ -398,9 +422,57 @@ function Progress({ stats, accuracy }: { stats: Stats; accuracy: number }) {
   </div><section className="mastery"><div className="section-heading-static"><h2>Accuracy by category</h2></div>{[["History", 82, 38], ["Science", 76, 33], ["Literature", 68, 29], ["Fine Arts", 61, 21], ["Geography", 74, 25]].map(([category, score, answered], index) => <div key={category as string}><span className="row-index">{String(index + 1).padStart(2, "0")}</span><strong>{category}</strong><i><b style={{ width: `${score}%` }} /></i><b>{score}%</b><small>{answered} answered</small></div>)}</section></>;
 }
 
-function Leaders({ xp }: { xp: number }) {
-  const players = [["Ava M.", 1760], ["Jordan L.", 1580], ["Sam K.", 1490], ["Nina P.", 1375], ["You", xp], ["Eli T.", 1180]].sort((a, b) => (b[1] as number) - (a[1] as number));
-  return <><Title over="Friendly competition" title="Weekly leaderboard." sub="Rankings reset every Monday. Learn consistently and the points follow." /><div className="tabs" role="tablist" aria-label="Leaderboard period"><button role="tab" aria-selected="true">This week</button><button role="tab" aria-selected="false">All time</button></div><div className="leaders"><div className="leader-header" aria-hidden="true"><span>Rank</span><span>Scholar</span><span>Level</span><span>Score</span></div>{players.map(([name, score], index) => <div className={name === "You" ? "you" : ""} key={name as string}><b>#{index + 1}</b><span className="leader-avatar">{(name as string).split(" ").map((part) => part[0]).join("")}</span><p><strong>{name}</strong><small>{index < 3 ? "Varsity Scholar" : "Rising Scholar"}</small></p><strong>{(score as number).toLocaleString()} <small>XP</small></strong></div>)}</div></>;
+function Leaders() {
+  const [period, setPeriod] = useState<LeaderboardPeriod>("weekly");
+  const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadLeaders = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await fetch(`/api/leaderboard?period=${period}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const data = await readApiResponse<{ leaders: LeaderboardEntry[] }>(response, "The leaderboard could not be loaded.");
+        setLeaders(data.leaders);
+      } catch (loadError) {
+        if (!controller.signal.aborted) {
+          setError(loadError instanceof Error ? loadError.message : "The leaderboard could not be loaded.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+    void loadLeaders();
+    return () => controller.abort();
+  }, [period]);
+
+  return <>
+    <Title over="Friendly competition" title={period === "weekly" ? "Weekly leaderboard." : "All-time leaderboard."} sub={period === "weekly" ? "Rankings reset every Monday. Learn consistently and the points follow." : "Lifetime XP across every QuizForge scholar."} />
+    <div className="tabs" role="tablist" aria-label="Leaderboard period">
+      <button role="tab" aria-selected={period === "weekly"} onClick={() => setPeriod("weekly")}>This week</button>
+      <button role="tab" aria-selected={period === "all_time"} onClick={() => setPeriod("all_time")}>All time</button>
+    </div>
+    <div className="leaders" aria-live="polite" aria-busy={loading}>
+      <div className="leader-header" aria-hidden="true"><span>Rank</span><span>Scholar</span><span>Level</span><span>Score</span></div>
+      {loading && <div className="leader-state"><LoaderCircle /><strong>Loading rankings...</strong></div>}
+      {!loading && error && <div className="leader-state leader-error"><strong>Rankings unavailable</strong><span>{error}</span><button className="secondary" onClick={() => setPeriod((current) => current === "weekly" ? "all_time" : "weekly")}>Try another period</button></div>}
+      {!loading && !error && leaders.length === 0 && <div className="leader-state"><strong>No scores yet</strong><span>Complete a practice set to open the rankings.</span></div>}
+      {!loading && !error && leaders.map((entry) => {
+        const initials = entry.display_name.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "QF";
+        return <div className={entry.is_current_user ? "you" : ""} key={entry.username}>
+          <b>#{entry.rank}</b><span className="leader-avatar">{initials}</span>
+          <p><strong>{entry.is_current_user ? `${entry.display_name} (You)` : entry.display_name}</strong><small>@{entry.username}</small></p>
+          <strong>{entry.xp.toLocaleString()} <small>XP</small></strong>
+        </div>;
+      })}
+    </div>
+  </>;
 }
 
 function Profile({ stats, accuracy, profile, save, signOut }: { stats: Stats; accuracy: number; profile: { username: string; display_name: string }; save: (event: React.FormEvent<HTMLFormElement>) => void; signOut: () => void }) {

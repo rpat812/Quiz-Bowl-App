@@ -22,12 +22,57 @@ export const questions: QuizQuestion[] = [
 ];
 
 export function normalizeAnswer(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^(?:the|a|an)\s+/, "");
+}
+
+function editDistance(left: string, right: string) {
+  if (left === right) return 0;
+  if (!left.length) return right.length;
+  if (!right.length) return left.length;
+
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    const current = [leftIndex];
+
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      current[rightIndex] = Math.min(
+        current[rightIndex - 1] + 1,
+        previous[rightIndex] + 1,
+        previous[rightIndex - 1] + substitutionCost,
+      );
+    }
+
+    previous = current;
+  }
+
+  return previous[right.length];
+}
+
+function isCloseMatch(submitted: string, accepted: string) {
+  const longerLength = Math.max(submitted.length, accepted.length);
+
+  // Short answers are too easy to turn into a different valid answer with one edit.
+  if (longerLength < 5) return false;
+
+  const maxEdits = longerLength >= 10 ? 2 : 1;
+  const distance = editDistance(submitted, accepted);
+
+  return distance <= maxEdits && distance / longerLength <= 0.15;
 }
 
 export function isCorrectAnswer(question: QuizQuestion, submitted: string) {
   const normalized = normalizeAnswer(submitted);
   return [question.answer, ...question.aliases].some(
-    (accepted) => normalizeAnswer(accepted) === normalized,
+    (accepted) => {
+      const normalizedAccepted = normalizeAnswer(accepted);
+      return normalizedAccepted === normalized || isCloseMatch(normalized, normalizedAccepted);
+    },
   );
 }
