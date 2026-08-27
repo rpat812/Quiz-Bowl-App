@@ -1,0 +1,2 @@
+export type AdminQuestionRow = { id:string;question:string;category:string;subcategory:string;difficulty:string;type:string;status:string;published:boolean;acceptedAnswer:string;explanation:string;attempts:number;correct:number;incorrect:number;uniqueUsers:number;accuracy:number;observedDifficulty:string;difficultyMismatch:boolean;lastServedAt:string|null };
+export type AdminQuestionResult = { data:AdminQuestionRow[];pagination:{page:number;pageSize:number;total:number;totalPages:number};summary:{questions:number;published:number;totalAttempts:number;categories:number} };

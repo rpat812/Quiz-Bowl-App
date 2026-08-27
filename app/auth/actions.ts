@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { getSiteUrl } from "@/lib/site-url";
 
 function authError(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
@@ -24,6 +25,7 @@ export async function signup(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const displayName = String(formData.get("displayName") ?? "").trim();
+  const referralCode = String(formData.get("referralCode") ?? "").trim().toUpperCase();
 
   if (!/^[a-z0-9_]{3,24}$/.test(username)) {
     authError("/signup", "Username must be 3-24 letters, numbers, or underscores.");
@@ -31,14 +33,14 @@ export async function signup(formData: FormData) {
   if (password.length < 8) authError("/signup", "Password must be at least 8 characters.");
 
   const requestHeaders = await headers();
-  const origin = requestHeaders.get("origin") ?? "http://localhost:3000";
+  const siteUrl = getSiteUrl(requestHeaders.get("origin"));
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`,
-      data: { username, display_name: displayName || username },
+      emailRedirectTo: `${siteUrl}/auth/callback`,
+      data: { username, display_name: displayName || username, referral_code: referralCode || undefined },
     },
   });
   if (error) authError("/signup", error.message);

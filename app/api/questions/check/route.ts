@@ -12,12 +12,13 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const questionId = body?.questionId;
   const submitted = body?.submitted;
+  const timedOut = body?.timedOut === true;
 
   if (
     typeof questionId !== "string" ||
     !/^HIST-\d{4}$/.test(questionId) ||
     typeof submitted !== "string" ||
-    !submitted.trim() ||
+    (!timedOut && !submitted.trim()) ||
     submitted.length > 200
   ) {
     return NextResponse.json({ error: "Invalid answer submission" }, { status: 400 });

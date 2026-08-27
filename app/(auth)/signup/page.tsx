@@ -5,9 +5,9 @@ import { signup } from "@/app/auth/actions";
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ref?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, ref } = await searchParams;
   return (
     <div className="auth-shell">
       <section className="auth-intro">
@@ -30,6 +30,7 @@ export default async function SignupPage({
           <p>Free to practice. Built for Quiz Bowl.</p>
           {error && <div className="auth-alert error" role="alert">{error}</div>}
           <form action={signup}>
+            <input type="hidden" name="referralCode" value={ref || ""} />
             <div className="auth-form-row">
               <label>Display name<input name="displayName" required maxLength={40} autoComplete="name" placeholder="Ada Lovelace" /></label>
               <label>Username<input name="username" required minLength={3} maxLength={24} pattern="[A-Za-z0-9_]+" autoComplete="username" placeholder="ada_quizzes" /></label>

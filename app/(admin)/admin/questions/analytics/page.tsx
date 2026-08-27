@@ -1,0 +1,14 @@
+import Link from "next/link";
+import { AdminHeader, Metric, Pagination, StatusBadge } from "@/components/admin/ui";
+import { requireAdmin } from "@/lib/admin/auth";
+import { adminRpc, formatAdminDate, integer, single } from "@/lib/admin/data";
+import type { AdminQuestionResult } from "@/types/admin";
+
+export default async function QuestionAnalytics({ searchParams }: { searchParams:Promise<Record<string,string|string[]|undefined>> }) {
+  await requireAdmin("questions.view"); const q=await searchParams; const search=single(q.search);const category=single(q.category);const sort=single(q.sort,"missed");const page=Math.max(1,integer(q.page,1));
+  const result=await adminRpc<AdminQuestionResult>("admin_question_analytics",{p_search:search,p_category:category,p_sort:sort,p_page:page,p_page_size:50});
+  return <><AdminHeader title="Question analytics" description="Empirical performance from recorded answers, separated from authored difficulty." />
+    <section className="admin-metrics compact"><Metric label="Question bank" value={result.summary.questions}/><Metric label="Published" value={result.summary.published}/><Metric label="Recorded answers" value={result.summary.totalAttempts.toLocaleString()}/><Metric label="Categories" value={result.summary.categories}/></section>
+    <form className="admin-toolbar"><label className="admin-search">Search<input name="search" defaultValue={search} placeholder="Question ID or text" /></label><label>Category<input name="category" defaultValue={category} placeholder="All categories" /></label><label>Analysis<select name="sort" defaultValue={sort}><option value="missed">Most missed</option><option value="hardest">Hardest</option><option value="easiest">Easiest</option></select></label><button className="admin-button primary">Apply</button></form>
+    <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Question</th><th>Category</th><th>Authored</th><th>Observed</th><th>Answers</th><th>Accuracy</th><th>Unique users</th><th>Last served</th></tr></thead><tbody>{result.data.map(row=><tr key={row.id}><td><Link className="admin-link" href={`/admin/content?edit=${row.id}`}>{row.id}</Link><small className="admin-clamp">{row.question}</small></td><td>{row.category}<small>{row.subcategory}</small></td><td><StatusBadge value={row.difficulty}/></td><td><StatusBadge value={row.observedDifficulty}/>{row.difficultyMismatch&&<small className="admin-warning">Mismatch</small>}</td><td>{row.attempts}</td><td>{row.accuracy}%</td><td>{row.uniqueUsers}</td><td>{formatAdminDate(row.lastServedAt)}</td></tr>)}</tbody></table>{!result.data.length&&<p className="admin-empty">No questions match these filters.</p>}</div><Pagination base="/admin/questions/analytics" page={page} totalPages={result.pagination.totalPages} params={{search,category,sort}} /></>;
+}

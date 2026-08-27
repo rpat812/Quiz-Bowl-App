@@ -1,0 +1,22 @@
+import Link from "next/link";
+import { AdminHeader, Notice, Pagination, StatusBadge } from "@/components/admin/ui";
+import { requireAdmin } from "@/lib/admin/auth";
+import { adminRpc, formatAdminDate, integer, single } from "@/lib/admin/data";
+
+type UserRow = { id: string; username: string; displayName: string; email: string | null; joinedAt: string; lastActiveAt: string | null; sessions: number; answered: number; accuracy: number; xp: number; streak: number; status: string; leaderboardEligible: boolean };
+type Result = { data: UserRow[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } };
+
+export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  await requireAdmin("users.view"); const params = await searchParams;
+  const search = single(params.search); const status = single(params.status); const activeWithin = integer(params.activeWithin, 0);
+  const sort = single(params.sort, "created_at"); const order = single(params.order, "desc"); const page = Math.max(1, integer(params.page, 1)); const pageSize = [25,50,100].includes(integer(params.pageSize,25)) ? integer(params.pageSize,25) : 25;
+  const result = await adminRpc<Result>("admin_list_users", { p_search: search, p_status: status, p_active_within: activeWithin || null, p_sort: sort, p_order: order, p_page: page, p_page_size: pageSize });
+  const urlParams = { search, status, activeWithin: activeWithin ? String(activeWithin) : "", sort, order, pageSize: String(pageSize) };
+  return <><AdminHeader title="Users" description="Search accounts, review engagement, and investigate support issues." />
+    <Notice error={single(params.error)} message={single(params.message)} />
+    <form className="admin-toolbar"><label className="admin-search">Search<input name="search" defaultValue={search} placeholder="Username, email, or user ID" /></label><label>Status<select name="status" defaultValue={status}><option value="">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option></select></label><label>Last active<select name="activeWithin" defaultValue={activeWithin || ""}><option value="">Any time</option><option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option></select></label><label>Sort<select name="sort" defaultValue={sort}><option value="created_at">Joined</option><option value="last_active">Last active</option><option value="xp">XP</option><option value="accuracy">Accuracy</option></select></label><label>Order<select name="order" defaultValue={order}><option value="desc">Descending</option><option value="asc">Ascending</option></select></label><button className="admin-button primary">Apply</button></form>
+    <div className="admin-table-meta"><strong>{result.pagination.total.toLocaleString()} users</strong><form><input type="hidden" name="search" value={search} /><input type="hidden" name="status" value={status} /><label>Rows<select name="pageSize" defaultValue={pageSize}><option>25</option><option>50</option><option>100</option></select></label><button>Update</button></form></div>
+    <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>User</th><th>Joined</th><th>Last active</th><th>Sessions</th><th>Answered</th><th>Accuracy</th><th>XP</th><th>Streak</th><th>Status</th><th /></tr></thead><tbody>{result.data.map((user) => <tr key={user.id}><td><strong>{user.displayName}</strong><small>@{user.username}{user.email ? ` · ${user.email}` : ""}</small></td><td>{formatAdminDate(user.joinedAt)}</td><td>{formatAdminDate(user.lastActiveAt)}</td><td>{user.sessions}</td><td>{user.answered}</td><td>{user.accuracy}%</td><td>{user.xp.toLocaleString()}</td><td>{user.streak}</td><td><StatusBadge value={user.status} />{!user.leaderboardEligible && <small>Not ranked</small>}</td><td><Link className="admin-link" href={`/admin/users/${user.id}`}>Open</Link></td></tr>)}</tbody></table>{!result.data.length && <p className="admin-empty">No users match these filters.</p>}</div>
+    <Pagination base="/admin/users" page={result.pagination.page} totalPages={result.pagination.totalPages} params={urlParams} />
+  </>;
+}

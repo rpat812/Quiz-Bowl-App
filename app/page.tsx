@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight, BarChart3, BookOpen, Check, ChevronRight, CircleHelp,
-  Flame, Home as HomeIcon, Library, LoaderCircle, Settings, Target, Trophy, User, X, Zap,
+  Award, Bell, Clock3, Flame, Home as HomeIcon, Library, LoaderCircle, Settings, Target, Trophy, User, Users, X, Zap,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { isCorrectAnswer, questions as qs, type QuizQuestion as Q } from "@/lib/question-bank";
 import { toProfileStats, type ProfileRow, type ProfileStats as Stats } from "@/types/database";
 import type { AnswerCheck, PracticeQuestion } from "@/types/questions";
 
-type View = "home" | "practice" | "categories" | "progress" | "leaders" | "profile" | "results";
+type View = "home" | "practice" | "categories" | "progress" | "leaders" | "friends" | "profile" | "settings" | "results";
 type Question = Q | PracticeQuestion;
-type Answer = { questionId: string; correct: boolean; submitted: string };
+type Answer = { questionId: string; correct: boolean; submitted: string; startedAt: string; submittedAt: string; responseTimeMs: number; timedOut: boolean };
 type LeaderboardPeriod = "weekly" | "all_time";
 type LeaderboardEntry = {
   rank: number;
@@ -20,6 +20,16 @@ type LeaderboardEntry = {
   username: string;
   xp: number;
   is_current_user: boolean;
+};
+type CategoryStat = { category: string; attempts: number; correct: number; accuracy: number | null; mastery: string; average_response_ms: number | null; last_practiced_at: string | null };
+type ProductData = {
+  overall: { attempted: number; correct: number; incorrect: number; accuracy: number | null; xp: number; streak: number; longestStreak: number; quizzesCompleted: number; averageResponseMs: number | null; timedOut: number };
+  timeline: Array<{ day: string; attempted: number; correct: number; xp: number; quizzes: number }>;
+  categories: CategoryStat[];
+  badges: Array<{ key: string; name: string; description: string; type: string; icon: string; earnedAt: string }>;
+  referral: { code?: string; qualified?: number };
+  notifications: { enabled: boolean; time: string; timezone: string };
+  recentActivity: Array<{ at: string; label: string; detail: string }>;
 };
 
 function isDatabaseQuestion(question: Question): question is PracticeQuestion {
@@ -73,6 +83,19 @@ export default function App() {
   const [saveError, setSaveError] = useState("");
   const [sessionXp, setSessionXp] = useState(0);
   const [profile, setProfile] = useState({ username: "player", display_name: "QuizForge Player" });
+  const [productData, setProductData] = useState<ProductData | null>(null);
+  const [productError, setProductError] = useState("");
+  const questionStartedAt = useRef(new Date().toISOString());
+
+  const loadProductData = async (days = 30) => {
+    try {
+      const response = await fetch(`/api/me?days=${days}`, { cache: "no-store" });
+      setProductData(await readApiResponse<ProductData>(response, "Your live progress could not be loaded."));
+      setProductError("");
+    } catch (error) {
+      setProductError(error instanceof Error ? error.message : "Your live progress could not be loaded.");
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -96,10 +119,16 @@ export default function App() {
         setStats(toProfileStats(row));
         setProfile({ username: row.username, display_name: row.display_name });
       }
+      void loadProductData();
       setLoaded(true);
     };
     load();
     return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    const requestedView = new URLSearchParams(window.location.search).get("view");
+    if (requestedView === "settings") setView("settings");
   }, []);
 
   const accuracy = stats.answered ? Math.round((stats.correct / stats.answered) * 100) : 0;
@@ -110,7 +139,9 @@ export default function App() {
     ["categories", "Categories", Library],
     ["progress", "Progress", BarChart3],
     ["leaders", "Leaderboard", Trophy],
+    ["friends", "Friends", Users],
     ["profile", "Profile", User],
+    ["settings", "Settings", Settings],
   ];
   const activeLabel = nav.find(([destination]) => destination === view)?.[1] ?? "Practice";
   const initials = profile.display_name.split(" ").map((name) => name[0]).join("").slice(0, 2).toUpperCase();
@@ -124,6 +155,7 @@ export default function App() {
     setAnswers([]);
     setQuestionError("");
     setQuestionSet([]);
+    questionStartedAt.current = new Date().toISOString();
     go("practice");
 
     if (category && category !== "History") {
@@ -144,14 +176,15 @@ export default function App() {
       const questions = data.questions as PracticeQuestion[];
       if (!questions.length) throw new Error("No published History questions are available.");
       setQuestionSet(questions);
+      questionStartedAt.current = new Date().toISOString();
     } catch (error) {
       setQuestionError(error instanceof Error ? error.message : "Questions could not be loaded.");
     } finally {
       setLoadingQuestions(false);
     }
   };
-  const submit = async () => {
-    if (!input.trim() || checking || feedback) return;
+  const submit = async (timedOut = false) => {
+    if ((!input.trim() && !timedOut) || checking || feedback) return;
     const question = questionSet[questionIndex];
     if (!question) return;
     setChecking(true);
@@ -162,18 +195,21 @@ export default function App() {
         const response = await fetch("/api/questions/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ questionId: question.id, submitted: input }),
+          body: JSON.stringify({ questionId: question.id, submitted: timedOut ? "" : input, timedOut }),
         });
         result = await readApiResponse<AnswerCheck>(response, "Your answer could not be checked.");
       } else {
         result = {
-          correct: isCorrectAnswer(question, input),
+          correct: !timedOut && isCorrectAnswer(question, input),
           correctAnswer: question.answer,
           explanation: question.explanation,
         };
       }
-      setFeedback(result);
-      setAnswers((current) => [...current, { questionId: question.id, correct: result.correct, submitted: input }]);
+      const submittedAt = new Date().toISOString();
+      const responseTimeMs = Math.max(0, Date.parse(submittedAt) - Date.parse(questionStartedAt.current));
+      const resolved = timedOut ? { ...result, correct: false } : result;
+      setFeedback(resolved);
+      setAnswers((current) => [...current, { questionId: question.id, correct: resolved.correct, submitted: timedOut ? "" : input, startedAt: questionStartedAt.current, submittedAt, responseTimeMs, timedOut }]);
     } catch (error) {
       setQuestionError(error instanceof Error ? error.message : "Your answer could not be checked.");
     } finally {
@@ -186,6 +222,7 @@ export default function App() {
       setInput("");
       setFeedback(null);
       setQuestionError("");
+      questionStartedAt.current = new Date().toISOString();
       return;
     }
     setSaving(true);
@@ -198,12 +235,13 @@ export default function App() {
           sessionType: title === "Daily practice" ? "daily" : "category",
           category: title === "Daily practice" ? "History" : title.replace(" practice", ""),
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          answers: answers.map(({ questionId, submitted }) => ({ questionId, submitted })),
+          answers,
         }),
       });
       const data = await readApiResponse<{ profile: Stats; xpEarned: number }>(response, "Progress could not be saved.");
       setStats(data.profile as Stats);
       setSessionXp(data.xpEarned);
+      void loadProductData();
       go("results");
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Progress could not be saved.");
@@ -263,12 +301,15 @@ export default function App() {
         </header>
         <div className="content">
           {saveError && <div className="app-error" role="alert">{saveError}</div>}
-          {view === "home" && <HomeView stats={stats} accuracy={accuracy} done={done} start={start} go={go} />}
-          {view === "practice" && <Practice q={questionSet[questionIndex]} i={questionIndex} total={questionSet.length} title={title} input={input} setInput={setInput} feedback={feedback} submit={submit} next={next} saving={saving} checking={checking} loading={loadingQuestions} error={questionError} exit={() => go("home")} />}
-          {view === "categories" && <Categories start={start} />}
-          {view === "progress" && <Progress stats={stats} accuracy={accuracy} />}
+          {view === "home" && <HomeView stats={stats} accuracy={accuracy} done={done} data={productData} start={start} go={go} />}
+          {productError && !saveError && <div className="app-error" role="alert">{productError}</div>}
+          {view === "practice" && <Practice q={questionSet[questionIndex]} i={questionIndex} total={questionSet.length} title={title} input={input} setInput={setInput} feedback={feedback} submit={submit} next={next} saving={saving} checking={checking} loading={loadingQuestions} error={questionError} startedAt={questionStartedAt.current} exit={() => go("home")} />}
+          {view === "categories" && <Categories start={start} data={productData?.categories || []} />}
+          {view === "progress" && <Progress data={productData} reload={loadProductData} start={start} />}
           {view === "leaders" && <Leaders />}
-          {view === "profile" && <Profile stats={stats} accuracy={accuracy} profile={profile} save={saveProfile} signOut={signOut} />}
+          {view === "friends" && <Friends referralCode={productData?.referral.code} />}
+          {view === "profile" && <Profile stats={stats} accuracy={accuracy} profile={profile} data={productData} save={saveProfile} signOut={signOut} />}
+          {view === "settings" && <NotificationSettings data={productData?.notifications} reload={loadProductData} />}
           {view === "results" && <Results answers={answers} daily={title === "Daily practice"} xp={sessionXp} start={start} home={() => go("home")} />}
         </div>
       </main>
@@ -284,7 +325,7 @@ export default function App() {
   );
 }
 
-function HomeView({ stats, accuracy, done, start, go }: { stats: Stats; accuracy: number; done: boolean; start: (category?: string) => void; go: (view: View) => void }) {
+function HomeView({ stats, accuracy, done, data, start, go }: { stats: Stats; accuracy: number; done: boolean; data: ProductData | null; start: (category?: string) => void; go: (view: View) => void }) {
   const completed = done ? 10 : 0;
   const edition = new Intl.DateTimeFormat("en-US", { month: "2-digit", day: "2-digit" }).format(new Date()).replace("/", "");
   return (
@@ -313,41 +354,45 @@ function HomeView({ stats, accuracy, done, start, go }: { stats: Stats; accuracy
       </div>
       <SectionTitle label="Subject collection" action="View all" onAction={() => go("categories")} />
       <div className="edition-grid">
-        {categories.slice(0, 6).map(([category], index) => (
+        {categories.slice(0, 6).map(([category], index) => { const categoryData=data?.categories.find(row=>row.category===category); return (
           <button className="edition-card" onClick={() => start(category)} key={category}>
             <span className="edition-number"><small>Edition</small>{String(index + 1).padStart(2, "0")}</span>
-            <span className="edition-name"><strong>{category}</strong><small>{categoryCounts[category] || "Starter set"}</small></span>
-            <b>{categoryScores[index]}%</b><ArrowRight />
+            <span className="edition-name"><strong>{category}</strong><small>{categoryData?`${categoryData.attempts} attempted`:'Unrated'}</small></span>
+            <b>{categoryData?.accuracy==null?'—':`${categoryData.accuracy}%`}</b><ArrowRight />
           </button>
-        ))}
+        );})}
       </div>
       <div className="dashboard-lower">
-        <section className="recommendation"><span className="edition-tab">03</span><div><h2>Strengthen Literature</h2><p>Your 68% accuracy is trending up. Five more clues can make it stick.</p></div><button className="secondary" onClick={() => start("Literature")}>Practice Literature <ArrowRight /></button></section>
-        <section className="rank-record"><Trophy /><span><small>Weekly rank</small><strong>#12</strong><b>90 XP from the top 10</b></span></section>
+        <section className="recommendation"><span className="edition-tab">{String(Math.max(1,data?.categories.length||1)).padStart(2,'0')}</span><div><h2>{data?.categories.filter(row=>row.attempts>=10).sort((a,b)=>(a.accuracy||0)-(b.accuracy||0))[0]?.category?`Strengthen ${data.categories.filter(row=>row.attempts>=10).sort((a,b)=>(a.accuracy||0)-(b.accuracy||0))[0].category}`:'Build your first category record'}</h2><p>{data?.overall.attempted?"Your live record identifies the next useful practice area.":"Complete a set to unlock evidence-based recommendations."}</p></div><button className="secondary" onClick={() => start(data?.categories.filter(row=>row.attempts>=10).sort((a,b)=>(a.accuracy||0)-(b.accuracy||0))[0]?.category)}>Start focused practice <ArrowRight /></button></section>
+        <section className="rank-record"><Trophy /><span><small>Completed sets</small><strong>{data?.overall.quizzesCompleted||0}</strong><b>{data?.overall.timedOut||0} timed-out answers</b></span></section>
       </div>
       <SectionTitle label="Category pulse" action="Full progress" onAction={() => go("progress")} />
       <div className="pulse">
-        {[["History", 82], ["Science", 76], ["Literature", 68], ["Fine Arts", 61]].map(([category, score]) => (
-          <section key={category as string}><span>{category}<b>{score}%</b></span><i><b style={{ width: `${score}%` }} /></i><small>Last 30 questions</small></section>
+        {(data?.categories.slice(0,4)||[]).map((row) => (
+          <section key={row.category}><span>{row.category}<b>{row.accuracy==null?'—':`${row.accuracy}%`}</b></span><i><b style={{ width: `${row.accuracy||0}%` }} /></i><small>{row.attempts} saved attempts</small></section>
         ))}
+        {!data?.categories.length&&<p className="empty-record">Category performance appears after your first practice set.</p>}
       </div>
     </>
   );
 }
 
-function Categories({ start }: { start: (category?: string) => void }) {
-  return <><Title over="Targeted practice" title="Choose an edition." sub="Build depth in one subject. Each round focuses your recall around that selection." /><div className="category-list">{categories.map(([category, description], index) => (
+function Categories({ start, data }: { start: (category?: string) => void; data: CategoryStat[] }) {
+  const indexed = new Map(data.map((row) => [row.category, row]));
+  return <><Title over="Targeted practice" title="Choose an edition." sub="Every measure below comes from your own completed practice." /><div className="category-list">{categories.map(([category, description], index) => {
+    const stat = indexed.get(category);
+    return (
     <button className="category-row" onClick={() => start(category)} key={category}>
       <span className="edition-number"><small>Edition</small>{String(index + 1).padStart(2, "0")}</span>
       <span className="category-copy"><strong>{category}</strong><small>{description}</small></span>
-      <span className="category-count">{categoryCounts[category] || "Starter set"}</span><span className="category-score">{categoryScores[index]}%</span><ChevronRight />
+      <span className="category-count">{stat ? `${stat.attempts} attempted · ${stat.mastery}` : "Unrated · No attempts"}</span><span className="category-score">{stat?.accuracy == null ? "—" : `${stat.accuracy}%`}</span><ChevronRight />
     </button>
-  ))}</div></>;
+  );})}</div></>;
 }
 
 function Practice({
   q, i, total, title, input, setInput, feedback, submit, next, saving,
-  checking, loading, error, exit,
+  checking, loading, error, startedAt, exit,
 }: {
   q?: Question;
   i: number;
@@ -356,14 +401,30 @@ function Practice({
   input: string;
   setInput: (value: string) => void;
   feedback: AnswerCheck | null;
-  submit: () => Promise<void>;
+  submit: (timedOut?: boolean) => Promise<void>;
   next: () => void;
   saving: boolean;
   checking: boolean;
   loading: boolean;
   error: string;
+  startedAt: string;
   exit: () => void;
 }) {
+  const [remaining, setRemaining] = useState(15000);
+  useEffect(() => {
+    if (!q || feedback) return;
+    const tick = () => setRemaining(Math.max(0, 15000 - (Date.now() - Date.parse(startedAt))));
+    tick(); const timer = window.setInterval(tick, 100);
+    return () => window.clearInterval(timer);
+  }, [q, feedback, startedAt]);
+  useEffect(() => {
+    if (q && !feedback && remaining === 0 && !checking) void submit(true);
+  }, [q, feedback, remaining, checking, submit]);
+  useEffect(() => {
+    if (!feedback || remaining > 0) return;
+    const timer = window.setTimeout(next, 3000);
+    return () => window.clearTimeout(timer);
+  }, [feedback, remaining, next]);
   if (loading && !q) {
     return <div className="assessment-loading" role="status" aria-live="polite" aria-busy="true">
       <LoaderCircle aria-hidden="true" />
@@ -400,7 +461,7 @@ function Practice({
 
   return <div className="practice">
     <div className="practice-top"><button onClick={exit} aria-label="Exit practice" title="Exit practice"><X /></button><div><span>{title}</span><div className="practice-progress" style={{ "--segments": total } as React.CSSProperties} aria-label={`Question ${i + 1} of ${total}`}>{Array.from({ length: total }).map((_, index) => <i className={index < i ? "done" : index === i ? "now" : ""} key={index} />)}</div></div><strong>{String(i + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</strong></div>
-    <article className="question-sheet"><div className="question-label"><span>Edition {edition}</span><b>{q.category}</b><small>{topic}</small></div><h1>{prompt}</h1>
+    <article className="question-sheet"><div className={`question-timer ${remaining <= 5000 ? "urgent" : ""}`} role="timer" aria-label={`${Math.ceil(remaining / 1000)} seconds remaining`}><span><Clock3 /> Time remaining</span><strong>{(remaining / 1000).toFixed(1)}s</strong><i><b style={{ transform: `scaleX(${remaining / 15000})` }} /></i></div><div className="question-label"><span>Edition {edition}</span><b>{q.category}</b><small>{topic}</small></div><h1>{prompt}</h1>
       {feedback === null ? <form onSubmit={(event) => { event.preventDefault(); void submit(); }}>
         {usesOptions
           ? <fieldset className="answer-options"><legend>Choose one answer</legend>{options.map((option, index) => {
@@ -416,14 +477,19 @@ function Practice({
   </div>;
 }
 
-function Progress({ stats, accuracy }: { stats: Stats; accuracy: number }) {
-  return <><Title over="Your record" title="Progress, indexed." sub="See what is sticking and where your next breakthrough lives." /><div className="kpis metric-ledger">
-    <Stat icon={<BookOpen />} label="Questions answered" value={String(stats.answered)} note="Lifetime" /><Stat icon={<Target />} label="Overall accuracy" value={`${accuracy}%`} note="All categories" /><Stat icon={<Flame />} label="Longest streak" value={formatDays(stats.longest)} note="Personal best" /><Stat icon={<Zap />} label="Lifetime XP" value={stats.xp.toLocaleString()} note="Varsity Scholar" />
-  </div><section className="mastery"><div className="section-heading-static"><h2>Accuracy by category</h2></div>{[["History", 82, 38], ["Science", 76, 33], ["Literature", 68, 29], ["Fine Arts", 61, 21], ["Geography", 74, 25]].map(([category, score, answered], index) => <div key={category as string}><span className="row-index">{String(index + 1).padStart(2, "0")}</span><strong>{category}</strong><i><b style={{ width: `${score}%` }} /></i><b>{score}%</b><small>{answered} answered</small></div>)}</section></>;
+function Progress({ data, reload, start }: { data: ProductData | null; reload: (days?: number) => Promise<void>; start: (category?: string) => void }) {
+  const [days, setDays] = useState(30);
+  if (!data) return <div className="assessment-loading" role="status"><LoaderCircle /><strong>Loading your progress...</strong></div>;
+  const o = data.overall;
+  if (!o.attempted) return <><Title over="Your record" title="Progress starts with practice." sub="Complete your first set to begin building a trustworthy record."/><button className="primary primary-ink" onClick={() => start()}>Start practice <ArrowRight/></button></>;
+  return <><Title over="Your record" title="Progress, indexed." sub="Live performance calculated from your saved attempts."/><div className="progress-filters" aria-label="Progress range">{[7,30,90,0].map(value=><button className={days===value?"active":""} key={value} onClick={()=>{setDays(value);void reload(value);}}>{value||"All"}{value?" days":" time"}</button>)}</div><div className="kpis metric-ledger">
+    <Stat icon={<BookOpen/>} label="Attempted" value={String(o.attempted)} note={`${o.correct} correct · ${o.incorrect} incorrect`}/><Stat icon={<Target/>} label="Accuracy" value={o.accuracy==null?"—":`${o.accuracy}%`} note={`${o.timedOut} timed out`}/><Stat icon={<Clock3/>} label="Average response" value={o.averageResponseMs==null?"—":`${(o.averageResponseMs/1000).toFixed(1)}s`} note={`${o.quizzesCompleted} completed sets`}/><Stat icon={<Zap/>} label="Lifetime XP" value={o.xp.toLocaleString()} note={`Best streak ${o.longestStreak} days`}/>
+  </div><section className="trend-ledger"><div className="section-heading-static"><h2>Practice over time</h2></div>{data.timeline.length?data.timeline.map(row=><div key={row.day}><time>{new Date(row.day).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</time><i><b style={{width:`${Math.max(4,Math.min(100,row.attempted*3))}%`}}/></i><span>{row.attempted} questions</span><strong>{row.attempted?Math.round(100*row.correct/row.attempted):0}%</strong><small>+{row.xp} XP</small></div>):<p className="empty-record">No activity in this range.</p>}</section><section className="mastery"><div className="section-heading-static"><h2>Accuracy by category</h2></div>{data.categories.map((row,index)=><div key={row.category}><span className="row-index">{String(index+1).padStart(2,"0")}</span><strong>{row.category}<small>{row.mastery}</small></strong><i><b style={{width:`${row.accuracy||0}%`}}/></i><b>{row.accuracy==null?"—":`${row.accuracy}%`}</b><small>{row.attempts} answered</small></div>)}</section></>;
 }
 
 function Leaders() {
   const [period, setPeriod] = useState<LeaderboardPeriod>("weekly");
+  const [scope, setScope] = useState<"global"|"friends">("global");
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -434,7 +500,7 @@ function Leaders() {
       setLoading(true);
       setError("");
       try {
-        const response = await fetch(`/api/leaderboard?period=${period}`, {
+        const response = await fetch(`/api/leaderboard?period=${period}&scope=${scope}`, {
           cache: "no-store",
           signal: controller.signal,
         });
@@ -450,13 +516,14 @@ function Leaders() {
     };
     void loadLeaders();
     return () => controller.abort();
-  }, [period]);
+  }, [period, scope]);
 
   return <>
-    <Title over="Friendly competition" title={period === "weekly" ? "Weekly leaderboard." : "All-time leaderboard."} sub={period === "weekly" ? "Rankings reset every Monday. Learn consistently and the points follow." : "Lifetime XP across every QuizForge scholar."} />
+    <Title over="Friendly competition" title={scope === "friends" ? "Friends leaderboard." : period === "weekly" ? "Weekly leaderboard." : "All-time leaderboard."} sub={scope === "friends" ? "Only you and accepted friends appear here." : period === "weekly" ? "Rankings reset every Monday. Learn consistently and the points follow." : "Lifetime XP across every QuizForge scholar."} />
+    <div className="tabs" role="tablist" aria-label="Leaderboard scope"><button role="tab" aria-selected={scope==="global"} onClick={()=>setScope("global")}>Global</button><button role="tab" aria-selected={scope==="friends"} onClick={()=>{setScope("friends");setPeriod("weekly");}}>Friends</button></div>
     <div className="tabs" role="tablist" aria-label="Leaderboard period">
       <button role="tab" aria-selected={period === "weekly"} onClick={() => setPeriod("weekly")}>This week</button>
-      <button role="tab" aria-selected={period === "all_time"} onClick={() => setPeriod("all_time")}>All time</button>
+      {scope === "global" && <button role="tab" aria-selected={period === "all_time"} onClick={() => setPeriod("all_time")}>All time</button>}
     </div>
     <div className="leaders" aria-live="polite" aria-busy={loading}>
       <div className="leader-header" aria-hidden="true"><span>Rank</span><span>Scholar</span><span>Level</span><span>Score</span></div>
@@ -475,9 +542,27 @@ function Leaders() {
   </>;
 }
 
-function Profile({ stats, accuracy, profile, save, signOut }: { stats: Stats; accuracy: number; profile: { username: string; display_name: string }; save: (event: React.FormEvent<HTMLFormElement>) => void; signOut: () => void }) {
+function Profile({ stats, accuracy, profile, data, save, signOut }: { stats: Stats; accuracy: number; profile: { username: string; display_name: string }; data: ProductData | null; save: (event: React.FormEvent<HTMLFormElement>) => void; signOut: () => void }) {
   const initials = profile.display_name.split(" ").map((name) => name[0]).join("").slice(0, 2).toUpperCase();
-  return <><Title over="Your account" title="Scholar profile." sub="Your QuizForge identity and lifetime record." /><div className="profile"><section className="profile-record"><span className="profile-avatar">{initials}</span><p className="micro-label">Varsity scholar</p><h2>{profile.display_name}</h2><p>@{profile.username}</p><div><span><strong>{stats.xp.toLocaleString()}</strong>XP</span><span><strong>{stats.answered}</strong>Answers</span><span><strong>{accuracy}%</strong>Accuracy</span></div></section><section className="profile-settings"><div className="section-heading-static"><h2><Settings /> Profile details</h2><p>Update how you appear on QuizForge.</p></div><form onSubmit={save}><label>Display name<input name="displayName" required maxLength={40} defaultValue={profile.display_name} /></label><label>Username<input name="username" required minLength={3} maxLength={24} pattern="[a-z0-9_]+" defaultValue={profile.username} /></label><div className="form-actions"><button className="primary primary-ink" type="submit">Save changes</button><button className="profile-signout" type="button" onClick={signOut}>Sign out</button></div></form></section></div></>;
+  const referralLink = data?.referral.code ? `/signup?ref=${data.referral.code}` : "";
+  return <><Title over="Your account" title="Scholar profile." sub="Your live QuizForge identity, achievements, and performance." /><div className="profile"><section className="profile-record"><span className="profile-avatar">{initials}</span><p className="micro-label">QuizForge scholar</p><h2>{profile.display_name}</h2><p>@{profile.username}</p><div><span><strong>{stats.xp.toLocaleString()}</strong>XP</span><span><strong>{stats.answered}</strong>Answers</span><span><strong>{accuracy}%</strong>Accuracy</span></div></section><section className="profile-settings"><div className="section-heading-static"><h2><Settings /> Profile details</h2><p>Update how you appear on QuizForge.</p></div><form onSubmit={save}><label>Display name<input name="displayName" required maxLength={40} defaultValue={profile.display_name} /></label><label>Username<input name="username" required minLength={3} maxLength={24} pattern="[a-z0-9_]+" defaultValue={profile.username} /></label><div className="form-actions"><button className="primary primary-ink" type="submit">Save changes</button><button className="profile-signout" type="button" onClick={signOut}>Sign out</button></div></form></section></div>
+  <div className="profile-grid"><section className="record-panel"><div className="section-heading-static"><h2><Award/> Earned badges</h2><p>{data?.badges.length||0} milestones unlocked</p></div>{data?.badges.length?<div className="badge-grid">{data.badges.map(badge=><div key={badge.key}><Award/><strong>{badge.name}</strong><p>{badge.description}</p><small>Earned {new Date(badge.earnedAt).toLocaleDateString()}</small></div>)}</div>:<p className="empty-record">Your first badge will appear after a qualifying milestone.</p>}</section><section className="record-panel invite-panel"><div className="section-heading-static"><h2><Users/> Invite friends</h2><p>Earn 100 XP when an invited scholar completes a set.</p></div><strong className="referral-code">{data?.referral.code||"Preparing code"}</strong><p>{data?.referral.qualified||0} qualified referrals</p><button className="secondary" disabled={!referralLink} onClick={()=>void navigator.clipboard.writeText(`${window.location.origin}${referralLink}`)}>Copy referral link</button></section></div>
+  <section className="activity-ledger"><div className="section-heading-static"><h2>Recent activity</h2></div>{data?.recentActivity.length?data.recentActivity.map(item=><div key={`${item.at}-${item.label}`}><time>{new Date(item.at).toLocaleDateString()}</time><strong>{item.label}</strong><span>{item.detail}</span></div>):<p className="empty-record">Complete a practice set to create activity.</p>}</section></>;
+}
+
+type FriendData={friends:Array<{id:string;username:string;displayName:string;xp:number;streak:number;accuracy:number|null;weeklyXp:number}>;incoming:Array<{id:string;userId:string;username:string;displayName:string}>;outgoing:Array<{id:string;userId:string;username:string;displayName:string}>};
+function Friends({referralCode}:{referralCode?:string}) {
+  const [data,setData]=useState<FriendData|null>(null);const [results,setResults]=useState<Array<{id:string;username:string;displayName:string;xp:number;streak:number}>>([]);const [error,setError]=useState("");
+  const load=async()=>{try{const response=await fetch('/api/friends',{cache:'no-store'});setData(await readApiResponse<FriendData>(response,'Friends could not be loaded.'));setError('');}catch(e){setError(e instanceof Error?e.message:'Friends could not be loaded.');}};
+  useEffect(()=>{void load();},[]);
+  const act=async(action:string,target:string)=>{try{const response=await fetch('/api/friends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,target})});await readApiResponse<{ok:boolean}>(response,'Friend action failed.');await load();}catch(e){setError(e instanceof Error?e.message:'Friend action failed.');}};
+  const search=async(event:React.FormEvent<HTMLFormElement>)=>{event.preventDefault();const query=String(new FormData(event.currentTarget).get('search')||'').trim();if(!query)return;try{const response=await fetch(`/api/friends?search=${encodeURIComponent(query)}`);setResults(await readApiResponse<Array<{id:string;username:string;displayName:string;xp:number;streak:number}>>(response,'Search failed.'));}catch(e){setError(e instanceof Error?e.message:'Search failed.');}};
+  return <><Title over="Your circle" title="Practice with friends." sub="Find scholars by username, manage requests, and compare real weekly progress."/>{error&&<div className="app-error" role="alert">{error}</div>}<form className="friend-search" onSubmit={search}><label>Find by username<input name="search" maxLength={40} placeholder="Search QuizForge scholars"/></label><button className="primary primary-ink">Search</button></form>{results.length>0&&<section className="people-ledger">{results.map(user=><div key={user.id}><span className="leader-avatar">{user.displayName.slice(0,2).toUpperCase()}</span><p><strong>{user.displayName}</strong><small>@{user.username} · {user.xp.toLocaleString()} XP</small></p><button className="secondary" onClick={()=>void act('send',user.id)}>Add friend</button></div>)}</section>}<div className="friends-layout"><section className="record-panel"><div className="section-heading-static"><h2>Friends</h2><p>{data?.friends.length||0} accepted</p></div>{data?.friends.length?data.friends.map(friend=><div className="friend-row" key={friend.id}><p><strong>{friend.displayName}</strong><small>@{friend.username}</small></p><span><b>{friend.weeklyXp}</b> weekly XP</span><span><b>{friend.accuracy??'—'}{friend.accuracy!=null?'%':''}</b> accuracy</span><button onClick={()=>void act('remove',friend.id)}>Remove</button></div>):<p className="empty-record">No friends yet. Search for a scholar or share your referral code.</p>}</section><section className="record-panel"><div className="section-heading-static"><h2>Requests</h2></div>{data?.incoming.map(request=><div className="request-row" key={request.id}><p><strong>{request.displayName}</strong><small>@{request.username}</small></p><button onClick={()=>void act('accept',request.id)}>Accept</button><button onClick={()=>void act('decline',request.id)}>Decline</button></div>)}{!data?.incoming.length&&<p className="empty-record">No incoming requests.</p>}<small>Your invite code: <strong>{referralCode||'—'}</strong></small></section></div></>;
+}
+
+function NotificationSettings({data,reload}:{data?:ProductData['notifications'];reload:(days?:number)=>Promise<void>}){
+ const [message,setMessage]=useState('');const save=async(event:React.FormEvent<HTMLFormElement>)=>{event.preventDefault();const form=new FormData(event.currentTarget);const body={enabled:form.get('enabled')==='on',time:String(form.get('time')),timezone:String(form.get('timezone'))};try{const response=await fetch('/api/notifications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});await readApiResponse<{ok:boolean}>(response,'Reminder settings could not be saved.');setMessage('Reminder settings saved.');await reload();}catch(e){setMessage(e instanceof Error?e.message:'Reminder settings could not be saved.');}};
+ return <><Title over="Preferences" title="Notification settings." sub="Daily practice reminders are optional and always under your control."/>{message&&<div className="app-error" role="status">{message}</div>}<section className="settings-sheet"><div><Bell/><h2>Daily practice reminder</h2><p>We will skip the email whenever your daily set is already complete.</p></div><form onSubmit={save}><label className="check-row"><input type="checkbox" name="enabled" defaultChecked={data?.enabled}/> Email reminders enabled</label><label>Reminder time<input type="time" name="time" required defaultValue={data?.time?.slice(0,5)||'18:00'}/></label><label>Timezone<input name="timezone" required maxLength={80} defaultValue={data?.timezone||Intl.DateTimeFormat().resolvedOptions().timeZone}/></label><button className="primary primary-ink">Save reminder settings</button></form></section></>;
 }
 
 function Results({ answers, daily, xp, start, home }: { answers: Answer[]; daily: boolean; xp: number; start: (category?: string) => void; home: () => void }) {
