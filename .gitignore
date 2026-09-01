@@ -78,6 +78,8 @@ supabase/.temp/
 
 # Next.js build output
 .next
+.next-corrupt-*
+.next-onedrive-stale*
 out
 
 # Nuxt.js build / generate output

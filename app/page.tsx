@@ -13,6 +13,7 @@ import type { AnswerCheck, PracticeQuestion } from "@/types/questions";
 type View = "home" | "practice" | "categories" | "progress" | "leaders" | "friends" | "profile" | "settings" | "results";
 type Question = Q | PracticeQuestion;
 type Answer = { questionId: string; correct: boolean; submitted: string; startedAt: string; submittedAt: string; responseTimeMs: number; timedOut: boolean };
+type UserProfile = { username: string; display_name: string; email: string; phone: string; age: number | null; gender: string };
 type LeaderboardPeriod = "weekly" | "all_time";
 type LeaderboardEntry = {
   rank: number;
@@ -40,6 +41,16 @@ function formatDays(value: number) {
   return `${value} day${value === 1 ? "" : "s"}`;
 }
 
+const profileFieldLabels: Array<[keyof UserProfile, string]> = [
+  ["display_name", "display name"], ["username", "username"], ["email", "email"],
+  ["phone", "phone number"], ["age", "age"], ["gender", "gender"],
+];
+
+function profileCompletion(profile: UserProfile) {
+  const missing = profileFieldLabels.filter(([key]) => profile[key] === null || String(profile[key]).trim() === "").map(([, label]) => label);
+  return { missing, percentage: Math.round(((profileFieldLabels.length - missing.length) / profileFieldLabels.length) * 100) };
+}
+
 async function readApiResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
   const contentType = response.headers.get("content-type") ?? "";
 
@@ -63,8 +74,10 @@ const categories = [
   ["Math", "Numbers, proofs & patterns"],
 ] as const;
 const categoryScores = [82, 76, 68, 61, 74, 72, 66, 79];
-const categoryCounts: Record<string, string> = { History: "100 questions" };
+const categoryCounts: Record<string, string> = { History: "600 questions" };
 const initial: Stats = { xp: 0, streak: 0, longest: 0, answered: 0, correct: 0, done: null };
+const QUESTION_TIME_LIMIT_MS = 15_000;
+const TIMED_OUT_FEEDBACK_MS = 1_500;
 
 export default function App() {
   const [view, setView] = useState<View>("home");
@@ -82,10 +95,14 @@ export default function App() {
   const [questionError, setQuestionError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [sessionXp, setSessionXp] = useState(0);
-  const [profile, setProfile] = useState({ username: "player", display_name: "QuizForge Player" });
+  const [profile, setProfile] = useState<UserProfile>({ username: "player", display_name: "QuizForge Player", email: "", phone: "", age: null, gender: "" });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
   const [productData, setProductData] = useState<ProductData | null>(null);
   const [productError, setProductError] = useState("");
   const questionStartedAt = useRef(new Date().toISOString());
+  const completedQuestionIds = useRef(new Set<string>());
+  const advancedQuestionIds = useRef(new Set<string>());
 
   const loadProductData = async (days = 30) => {
     try {
@@ -117,7 +134,8 @@ export default function App() {
       } else {
         const row = data as ProfileRow;
         setStats(toProfileStats(row));
-        setProfile({ username: row.username, display_name: row.display_name });
+        const { data: details } = await supabase.from("profile_details").select("email,phone,age,gender").eq("user_id", user.id).maybeSingle();
+        setProfile({ username: row.username, display_name: row.display_name, email: details?.email ?? user.email ?? "", phone: details?.phone ?? "", age: details?.age ?? null, gender: details?.gender ?? "" });
       }
       void loadProductData();
       setLoaded(true);
@@ -155,6 +173,8 @@ export default function App() {
     setAnswers([]);
     setQuestionError("");
     setQuestionSet([]);
+    completedQuestionIds.current.clear();
+    advancedQuestionIds.current.clear();
     questionStartedAt.current = new Date().toISOString();
     go("practice");
 
@@ -186,7 +206,11 @@ export default function App() {
   const submit = async (timedOut = false) => {
     if ((!input.trim() && !timedOut) || checking || feedback) return;
     const question = questionSet[questionIndex];
-    if (!question) return;
+    if (!question || completedQuestionIds.current.has(question.id)) return;
+    completedQuestionIds.current.add(question.id);
+    const submittedAt = new Date().toISOString();
+    const responseTimeMs = Math.max(0, Date.parse(submittedAt) - Date.parse(questionStartedAt.current));
+    const didTimeOut = timedOut || responseTimeMs >= QUESTION_TIME_LIMIT_MS;
     setChecking(true);
     setQuestionError("");
     try {
@@ -195,30 +219,32 @@ export default function App() {
         const response = await fetch("/api/questions/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ questionId: question.id, submitted: timedOut ? "" : input, timedOut }),
+          body: JSON.stringify({ questionId: question.id, submitted: didTimeOut ? "" : input, timedOut: didTimeOut }),
         });
         result = await readApiResponse<AnswerCheck>(response, "Your answer could not be checked.");
       } else {
         result = {
-          correct: !timedOut && isCorrectAnswer(question, input),
+          correct: !didTimeOut && isCorrectAnswer(question, input),
           correctAnswer: question.answer,
           explanation: question.explanation,
         };
       }
-      const submittedAt = new Date().toISOString();
-      const responseTimeMs = Math.max(0, Date.parse(submittedAt) - Date.parse(questionStartedAt.current));
-      const resolved = timedOut ? { ...result, correct: false } : result;
+      const resolved = didTimeOut ? { ...result, correct: false } : result;
       setFeedback(resolved);
-      setAnswers((current) => [...current, { questionId: question.id, correct: resolved.correct, submitted: timedOut ? "" : input, startedAt: questionStartedAt.current, submittedAt, responseTimeMs, timedOut }]);
+      setAnswers((current) => [...current, { questionId: question.id, correct: resolved.correct, submitted: didTimeOut ? "" : input, startedAt: questionStartedAt.current, submittedAt, responseTimeMs, timedOut: didTimeOut }]);
     } catch (error) {
+      completedQuestionIds.current.delete(question.id);
       setQuestionError(error instanceof Error ? error.message : "Your answer could not be checked.");
     } finally {
       setChecking(false);
     }
   };
-  const next = async () => {
+  const next = async (expectedQuestionId: string) => {
+    const currentQuestion = questionSet[questionIndex];
+    if (!currentQuestion || currentQuestion.id !== expectedQuestionId || advancedQuestionIds.current.has(expectedQuestionId)) return;
+    advancedQuestionIds.current.add(expectedQuestionId);
     if (questionIndex + 1 < questionSet.length) {
-      setQuestionIndex(questionIndex + 1);
+      setQuestionIndex((current) => current + 1);
       setInput("");
       setFeedback(null);
       setQuestionError("");
@@ -244,6 +270,7 @@ export default function App() {
       void loadProductData();
       go("results");
     } catch (error) {
+      advancedQuestionIds.current.delete(expectedQuestionId);
       setSaveError(error instanceof Error ? error.message : "Progress could not be saved.");
     } finally {
       setSaving(false);
@@ -254,10 +281,22 @@ export default function App() {
     const form = new FormData(event.currentTarget);
     const username = String(form.get("username") || "").trim().toLowerCase();
     const display_name = String(form.get("displayName") || "").trim();
+    const email = String(form.get("email") || "").trim().toLowerCase();
+    const phone = String(form.get("phone") || "").trim();
+    const ageValue = String(form.get("age") || "").trim();
+    const age = ageValue ? Number(ageValue) : null;
+    const gender = String(form.get("gender") || "");
     setSaveError("");
-    const { error } = await createClient().from("profiles").update({ username, display_name }).eq("username", profile.username);
+    setProfileMessage("");
+    setProfileSaving(true);
+    const { data, error } = await createClient().rpc("update_my_profile", { p_display_name: display_name, p_username: username, p_email: email, p_phone: phone, p_age: age, p_gender: gender });
+    setProfileSaving(false);
     if (error) setSaveError(error.message);
-    else setProfile({ username, display_name });
+    else {
+      const updated = data as UserProfile;
+      setProfile({ ...updated, email: updated.email ?? "", phone: updated.phone ?? "", age: updated.age ?? null, gender: updated.gender ?? "" });
+      setProfileMessage("Profile details saved.");
+    }
   };
   const signOut = async () => {
     await createClient().auth.signOut();
@@ -301,14 +340,14 @@ export default function App() {
         </header>
         <div className="content">
           {saveError && <div className="app-error" role="alert">{saveError}</div>}
-          {view === "home" && <HomeView stats={stats} accuracy={accuracy} done={done} data={productData} start={start} go={go} />}
+          {view === "home" && <HomeView stats={stats} accuracy={accuracy} done={done} data={productData} profile={profile} start={start} go={go} />}
           {productError && !saveError && <div className="app-error" role="alert">{productError}</div>}
-          {view === "practice" && <Practice q={questionSet[questionIndex]} i={questionIndex} total={questionSet.length} title={title} input={input} setInput={setInput} feedback={feedback} submit={submit} next={next} saving={saving} checking={checking} loading={loadingQuestions} error={questionError} startedAt={questionStartedAt.current} exit={() => go("home")} />}
+          {view === "practice" && <Practice key={questionSet[questionIndex]?.id ?? "loading"} q={questionSet[questionIndex]} i={questionIndex} total={questionSet.length} title={title} input={input} setInput={setInput} feedback={feedback} submit={submit} next={next} saving={saving} checking={checking} loading={loadingQuestions} error={questionError} startedAt={questionStartedAt.current} exit={() => go("home")} />}
           {view === "categories" && <Categories start={start} data={productData?.categories || []} />}
           {view === "progress" && <Progress data={productData} reload={loadProductData} start={start} />}
           {view === "leaders" && <Leaders />}
           {view === "friends" && <Friends referralCode={productData?.referral.code} />}
-          {view === "profile" && <Profile stats={stats} accuracy={accuracy} profile={profile} data={productData} save={saveProfile} signOut={signOut} />}
+          {view === "profile" && <Profile stats={stats} accuracy={accuracy} profile={profile} data={productData} save={saveProfile} saving={profileSaving} message={profileMessage} signOut={signOut} />}
           {view === "settings" && <NotificationSettings data={productData?.notifications} reload={loadProductData} />}
           {view === "results" && <Results answers={answers} daily={title === "Daily practice"} xp={sessionXp} start={start} home={() => go("home")} />}
         </div>
@@ -325,12 +364,20 @@ export default function App() {
   );
 }
 
-function HomeView({ stats, accuracy, done, data, start, go }: { stats: Stats; accuracy: number; done: boolean; data: ProductData | null; start: (category?: string) => void; go: (view: View) => void }) {
+function HomeView({ stats, accuracy, done, data, profile, start, go }: { stats: Stats; accuracy: number; done: boolean; data: ProductData | null; profile: UserProfile; start: (category?: string) => void; go: (view: View) => void }) {
   const completed = done ? 10 : 0;
   const edition = new Intl.DateTimeFormat("en-US", { month: "2-digit", day: "2-digit" }).format(new Date()).replace("/", "");
+  const completion = profileCompletion(profile);
   return (
     <>
       <div className="page-heading dashboard-heading"><h1>Build your range.</h1><p>A focused round today. A stronger recall tomorrow.</p></div>
+      <section className={`profile-completion ${completion.percentage === 100 ? "complete" : ""}`} aria-labelledby="profile-completion-title">
+        <div><h2 id="profile-completion-title">{completion.percentage === 100 ? "Profile complete" : "Complete your profile"}</h2><p>{completion.percentage === 100 ? "Your scholar record is complete and up to date." : `${completion.percentage}% complete`}</p></div>
+        <strong>{completion.percentage}%</strong>
+        <div className="profile-completion-track" role="progressbar" aria-label="Profile completion" aria-valuemin={0} aria-valuemax={100} aria-valuenow={completion.percentage}><i style={{ width: `${completion.percentage}%` }} /></div>
+        {completion.missing.length > 0 && <p className="profile-missing">Missing: {completion.missing.join(", ")}.</p>}
+        {completion.percentage < 100 && <button className="secondary" onClick={() => go("profile")}>Complete profile <ArrowRight /></button>}
+      </section>
       <div className="daily-layout">
         <section className="daily-edition">
           <div className="edition-stamp"><span>Daily set</span><small>Edition</small><strong>{edition}</strong><b>History</b></div>
@@ -402,7 +449,7 @@ function Practice({
   setInput: (value: string) => void;
   feedback: AnswerCheck | null;
   submit: (timedOut?: boolean) => Promise<void>;
-  next: () => void;
+  next: (questionId: string) => void;
   saving: boolean;
   checking: boolean;
   loading: boolean;
@@ -410,21 +457,37 @@ function Practice({
   startedAt: string;
   exit: () => void;
 }) {
-  const [remaining, setRemaining] = useState(15000);
+  const [remaining, setRemaining] = useState(QUESTION_TIME_LIMIT_MS);
+  const expirationSubmitted = useRef(false);
+
+  useEffect(() => {
+    expirationSubmitted.current = false;
+    setRemaining(QUESTION_TIME_LIMIT_MS);
+  }, [q?.id, startedAt]);
+
   useEffect(() => {
     if (!q || feedback) return;
-    const tick = () => setRemaining(Math.max(0, 15000 - (Date.now() - Date.parse(startedAt))));
-    tick(); const timer = window.setInterval(tick, 100);
+
+    const deadline = Date.parse(startedAt) + QUESTION_TIME_LIMIT_MS;
+    const tick = () => setRemaining(Math.max(0, deadline - Date.now()));
+    tick();
+    const timer = window.setInterval(tick, 100);
     return () => window.clearInterval(timer);
-  }, [q, feedback, startedAt]);
+  }, [q?.id, feedback, startedAt]);
+
   useEffect(() => {
-    if (q && !feedback && remaining === 0 && !checking) void submit(true);
+    if (!q || feedback || remaining > 0 || checking || expirationSubmitted.current) return;
+    expirationSubmitted.current = true;
+    void submit(true);
   }, [q, feedback, remaining, checking, submit]);
+
   useEffect(() => {
     if (!feedback || remaining > 0) return;
-    const timer = window.setTimeout(next, 3000);
+    const questionId = q?.id;
+    if (!questionId) return;
+    const timer = window.setTimeout(() => next(questionId), TIMED_OUT_FEEDBACK_MS);
     return () => window.clearTimeout(timer);
-  }, [feedback, remaining, next]);
+  }, [feedback, remaining, next, q?.id]);
   if (loading && !q) {
     return <div className="assessment-loading" role="status" aria-live="polite" aria-busy="true">
       <LoaderCircle aria-hidden="true" />
@@ -451,6 +514,7 @@ function Practice({
   const questionType = databaseQuestion ? q.questionType : "short_answer";
   const options = databaseQuestion ? q.options : [];
   const usesOptions = questionType === "multiple_choice" || questionType === "true_false";
+  const timeExpired = remaining <= 0;
   const editionIndex = Math.max(0, categories.findIndex(([category]) => category === q.category));
   const edition = String(editionIndex + 1).padStart(2, "0");
   const correctAnswer = feedback
@@ -461,18 +525,18 @@ function Practice({
 
   return <div className="practice">
     <div className="practice-top"><button onClick={exit} aria-label="Exit practice" title="Exit practice"><X /></button><div><span>{title}</span><div className="practice-progress" style={{ "--segments": total } as React.CSSProperties} aria-label={`Question ${i + 1} of ${total}`}>{Array.from({ length: total }).map((_, index) => <i className={index < i ? "done" : index === i ? "now" : ""} key={index} />)}</div></div><strong>{String(i + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</strong></div>
-    <article className="question-sheet"><div className={`question-timer ${remaining <= 5000 ? "urgent" : ""}`} role="timer" aria-label={`${Math.ceil(remaining / 1000)} seconds remaining`}><span><Clock3 /> Time remaining</span><strong>{(remaining / 1000).toFixed(1)}s</strong><i><b style={{ transform: `scaleX(${remaining / 15000})` }} /></i></div><div className="question-label"><span>Edition {edition}</span><b>{q.category}</b><small>{topic}</small></div><h1>{prompt}</h1>
+    <article className="question-sheet"><div className={`question-timer ${remaining <= 5000 ? "urgent" : ""} ${timeExpired ? "expired" : ""}`} role="timer" aria-live="off" aria-label={timeExpired ? "Time expired" : `${Math.ceil(remaining / 1000)} seconds remaining`}><span><Clock3 /> {timeExpired ? "Time expired" : "Time remaining"}</span><strong>{(remaining / 1000).toFixed(1)}s</strong><i><b style={{ transform: `scaleX(${remaining / QUESTION_TIME_LIMIT_MS})` }} /></i></div><div className="question-label"><span>Edition {edition}</span><b>{q.category}</b><small>{topic}</small></div><h1>{prompt}</h1>
       {feedback === null ? <form onSubmit={(event) => { event.preventDefault(); void submit(); }}>
         {usesOptions
           ? <fieldset className="answer-options"><legend>Choose one answer</legend>{options.map((option, index) => {
               const value = questionType === "true_false" ? option.toLowerCase() : option;
-              return <button className={input === value ? "selected" : ""} type="button" onClick={() => setInput(value)} disabled={checking} aria-pressed={input === value} key={option}><span>{String.fromCharCode(65 + index)}</span>{option}</button>;
+              return <button className={input === value ? "selected" : ""} type="button" onClick={() => setInput(value)} disabled={checking || timeExpired} aria-pressed={input === value} key={option}><span>{String.fromCharCode(65 + index)}</span>{option}</button>;
             })}</fieldset>
-          : <label>{questionType === "fill_in_the_blank" ? "Complete the blank" : "Your answer"}<input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder={questionType === "fill_in_the_blank" ? "Type the missing word or phrase" : "Type your answer"} maxLength={200} /></label>}
+          : <label>{questionType === "fill_in_the_blank" ? "Complete the blank" : "Your answer"}<input autoFocus value={input} onChange={(event) => setInput(event.target.value)} placeholder={questionType === "fill_in_the_blank" ? "Type the missing word or phrase" : "Type your answer"} maxLength={200} disabled={checking || timeExpired} /></label>}
         {error && <p className="question-error" role="alert">{error}</p>}
-        <button className="primary primary-ink" disabled={!input.trim() || checking}>{checking ? "Checking answer" : "Submit answer"} <ArrowRight /></button>
+        <button className="primary primary-ink" disabled={!input.trim() || checking || timeExpired}>{timeExpired ? "Time expired" : checking ? "Checking answer" : "Submit answer"} <ArrowRight /></button>
       </form>
-        : <div className={`feedback ${feedback.correct ? "correct" : "wrong"}`}><div className="feedback-title"><span>{feedback.correct ? <Check /> : <X />}</span><div><small>{feedback.correct ? "Correct / +10 XP" : "Not quite"}</small><h2>{feedback.correct ? "Nice recall." : `Answer: ${correctAnswer}`}</h2></div></div><section><strong>Why it matters</strong><p>{feedback.explanation}</p></section><button className="primary primary-ink" disabled={saving} onClick={next}>{saving ? "Saving progress" : i + 1 === total ? "See results" : "Next question"}<ArrowRight /></button></div>}
+        : <div className={`feedback ${feedback.correct ? "correct" : "wrong"}`}><div className="feedback-title"><span>{feedback.correct ? <Check /> : <X />}</span><div><small>{feedback.correct ? "Correct / +10 XP" : "Not quite"}</small><h2>{feedback.correct ? "Nice recall." : `Answer: ${correctAnswer}`}</h2></div></div><section><strong>Why it matters</strong><p>{feedback.explanation}</p></section><button className="primary primary-ink" disabled={saving} onClick={() => next(q.id)}>{saving ? "Saving progress" : i + 1 === total ? "See results" : "Next question"}<ArrowRight /></button></div>}
     </article><button className="report"><CircleHelp /> Report this question</button>
   </div>;
 }
@@ -542,10 +606,10 @@ function Leaders() {
   </>;
 }
 
-function Profile({ stats, accuracy, profile, data, save, signOut }: { stats: Stats; accuracy: number; profile: { username: string; display_name: string }; data: ProductData | null; save: (event: React.FormEvent<HTMLFormElement>) => void; signOut: () => void }) {
+function Profile({ stats, accuracy, profile, data, save, saving, message, signOut }: { stats: Stats; accuracy: number; profile: UserProfile; data: ProductData | null; save: (event: React.FormEvent<HTMLFormElement>) => void; saving: boolean; message: string; signOut: () => void }) {
   const initials = profile.display_name.split(" ").map((name) => name[0]).join("").slice(0, 2).toUpperCase();
   const referralLink = data?.referral.code ? `/signup?ref=${data.referral.code}` : "";
-  return <><Title over="Your account" title="Scholar profile." sub="Your live QuizForge identity, achievements, and performance." /><div className="profile"><section className="profile-record"><span className="profile-avatar">{initials}</span><p className="micro-label">QuizForge scholar</p><h2>{profile.display_name}</h2><p>@{profile.username}</p><div><span><strong>{stats.xp.toLocaleString()}</strong>XP</span><span><strong>{stats.answered}</strong>Answers</span><span><strong>{accuracy}%</strong>Accuracy</span></div></section><section className="profile-settings"><div className="section-heading-static"><h2><Settings /> Profile details</h2><p>Update how you appear on QuizForge.</p></div><form onSubmit={save}><label>Display name<input name="displayName" required maxLength={40} defaultValue={profile.display_name} /></label><label>Username<input name="username" required minLength={3} maxLength={24} pattern="[a-z0-9_]+" defaultValue={profile.username} /></label><div className="form-actions"><button className="primary primary-ink" type="submit">Save changes</button><button className="profile-signout" type="button" onClick={signOut}>Sign out</button></div></form></section></div>
+  return <><Title over="Your account" title="Scholar profile." sub="Your live QuizForge identity, achievements, and performance." /><div className="profile"><section className="profile-record"><span className="profile-avatar">{initials}</span><p className="micro-label">QuizForge scholar</p><h2>{profile.display_name}</h2><p>@{profile.username}</p><div><span><strong>{stats.xp.toLocaleString()}</strong>XP</span><span><strong>{stats.answered}</strong>Answers</span><span><strong>{accuracy}%</strong>Accuracy</span></div></section><section className="profile-settings"><div className="section-heading-static"><h2><Settings /> Profile details</h2><p>Keep your private contact details and scholar identity current.</p></div>{message && <p className="profile-save-message" role="status">{message}</p>}<form onSubmit={save}><div className="profile-field-grid"><label>Display name<input name="displayName" required maxLength={40} defaultValue={profile.display_name} /></label><label>Username<input name="username" required minLength={3} maxLength={24} pattern="[a-z0-9_]+" defaultValue={profile.username} /></label><label>Email address<input name="email" type="email" autoComplete="email" maxLength={254} defaultValue={profile.email} /></label><label>Phone number<input name="phone" type="tel" autoComplete="tel" maxLength={20} pattern="\+?[0-9][0-9 ()-]{6,19}" title="Enter 7 to 20 digits; spaces, parentheses, and hyphens are allowed." defaultValue={profile.phone} /></label><label>Age<input name="age" type="number" inputMode="numeric" min={13} max={120} defaultValue={profile.age ?? ""} /></label><label>Gender<select name="gender" defaultValue={profile.gender}><option value="">Select an option</option><option value="woman">Woman</option><option value="man">Man</option><option value="non_binary">Non-binary</option><option value="prefer_not_to_say">Prefer not to say</option></select></label></div><div className="form-actions"><button className="primary primary-ink" type="submit" disabled={saving}>{saving ? "Saving changes" : "Save changes"}</button><button className="profile-signout" type="button" onClick={signOut}>Sign out</button></div></form></section></div>
   <div className="profile-grid"><section className="record-panel"><div className="section-heading-static"><h2><Award/> Earned badges</h2><p>{data?.badges.length||0} milestones unlocked</p></div>{data?.badges.length?<div className="badge-grid">{data.badges.map(badge=><div key={badge.key}><Award/><strong>{badge.name}</strong><p>{badge.description}</p><small>Earned {new Date(badge.earnedAt).toLocaleDateString()}</small></div>)}</div>:<p className="empty-record">Your first badge will appear after a qualifying milestone.</p>}</section><section className="record-panel invite-panel"><div className="section-heading-static"><h2><Users/> Invite friends</h2><p>Earn 100 XP when an invited scholar completes a set.</p></div><strong className="referral-code">{data?.referral.code||"Preparing code"}</strong><p>{data?.referral.qualified||0} qualified referrals</p><button className="secondary" disabled={!referralLink} onClick={()=>void navigator.clipboard.writeText(`${window.location.origin}${referralLink}`)}>Copy referral link</button></section></div>
   <section className="activity-ledger"><div className="section-heading-static"><h2>Recent activity</h2></div>{data?.recentActivity.length?data.recentActivity.map(item=><div key={`${item.at}-${item.label}`}><time>{new Date(item.at).toLocaleDateString()}</time><strong>{item.label}</strong><span>{item.detail}</span></div>):<p className="empty-record">Complete a practice set to create activity.</p>}</section></>;
 }

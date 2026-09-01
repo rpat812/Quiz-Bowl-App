@@ -53,6 +53,14 @@ Additional `super_admin`, `content_admin`, and `support_admin` assignments can
 then be managed from `/admin/settings`. All admin mutations are server-side,
 capability checked in Postgres, and recorded in `admin_audit_logs`.
 
+The History bank contains 600 published questions. Apply
+`202608310001_add_500_history_questions.sql` after the earlier migrations to
+load questions `HIST-0101` through `HIST-0600`.
+
+Apply `202608310002_profile_details_and_admin_insights.sql` to add private
+profile details, validated profile updates, completion tracking data, and the
+admin demographic reporting RPCs.
+
 ## Product enhancement services
 
 `202608280001_product_enhancements.sql` adds timed attempts, live progress and
