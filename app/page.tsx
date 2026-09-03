@@ -74,7 +74,7 @@ const categories = [
   ["Math", "Numbers, proofs & patterns"],
 ] as const;
 const categoryScores = [82, 76, 68, 61, 74, 72, 66, 79];
-const categoryCounts: Record<string, string> = { History: "1,100 questions" };
+const categoryCounts: Record<string, string> = { History: "1,100 questions", Science: "500 questions" };
 const initial: Stats = { xp: 0, streak: 0, longest: 0, answered: 0, correct: 0, done: null };
 const QUESTION_TIME_LIMIT_MS = 15_000;
 const TIMED_OUT_FEEDBACK_MS = 1_500;
