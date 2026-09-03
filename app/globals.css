@@ -502,9 +502,9 @@ svg { width: 19px; height: 19px; stroke-width: 1.8; flex: none; }
 }
 
 /* Product enhancement records */
-.question-timer{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--rule)}
-.question-timer>span{display:flex;align-items:center;gap:7px;font-family:"Barlow Condensed",sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}.question-timer svg{width:17px}.question-timer>strong{font-family:"Barlow Condensed",sans-serif;font-size:24px;font-variant-numeric:tabular-nums}.question-timer>i{grid-column:1/-1;height:5px;background:#ded9d0;overflow:hidden}.question-timer>i>b{display:block;width:100%;height:100%;background:var(--blue);transform-origin:left center;transition:transform .1s linear}.question-timer.urgent{color:var(--error)}.question-timer.urgent>i>b{background:var(--error)}
-.question-timer.expired>i>b{transition:none}.question-sheet input:disabled{cursor:not-allowed;background:#ece9e3;color:var(--muted)}
+.question-timer{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.question-timer>span{display:flex;align-items:center;gap:7px;font-family:"Barlow Condensed",sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}.question-timer svg{width:17px}.question-timer>strong{font-family:"Barlow Condensed",sans-serif;font-size:24px;font-variant-numeric:tabular-nums}.question-timer-track{grid-column:1/-1;display:block;width:100%;height:5px;background:#ded9d0;overflow:hidden}.question-timer-fill{display:block;width:100%;height:100%;background:var(--blue);transform-origin:left center;transition:transform .1s linear;will-change:transform}.question-timer.urgent{color:var(--brick)}
+.question-timer.expired .question-timer-fill{transition:none}.question-sheet input:disabled{cursor:not-allowed;background:#ece9e3;color:var(--muted)}
 
 @media (max-width: 640px) {
   .profile-field-grid { grid-template-columns: 1fr; }

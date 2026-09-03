@@ -74,7 +74,7 @@ const categories = [
   ["Math", "Numbers, proofs & patterns"],
 ] as const;
 const categoryScores = [82, 76, 68, 61, 74, 72, 66, 79];
-const categoryCounts: Record<string, string> = { History: "600 questions" };
+const categoryCounts: Record<string, string> = { History: "1,100 questions" };
 const initial: Stats = { xp: 0, streak: 0, longest: 0, answered: 0, correct: 0, done: null };
 const QUESTION_TIME_LIMIT_MS = 15_000;
 const TIMED_OUT_FEEDBACK_MS = 1_500;
@@ -515,6 +515,7 @@ function Practice({
   const options = databaseQuestion ? q.options : [];
   const usesOptions = questionType === "multiple_choice" || questionType === "true_false";
   const timeExpired = remaining <= 0;
+  const timeRemainingRatio = Math.max(0, Math.min(1, remaining / QUESTION_TIME_LIMIT_MS));
   const editionIndex = Math.max(0, categories.findIndex(([category]) => category === q.category));
   const edition = String(editionIndex + 1).padStart(2, "0");
   const correctAnswer = feedback
@@ -525,7 +526,7 @@ function Practice({
 
   return <div className="practice">
     <div className="practice-top"><button onClick={exit} aria-label="Exit practice" title="Exit practice"><X /></button><div><span>{title}</span><div className="practice-progress" style={{ "--segments": total } as React.CSSProperties} aria-label={`Question ${i + 1} of ${total}`}>{Array.from({ length: total }).map((_, index) => <i className={index < i ? "done" : index === i ? "now" : ""} key={index} />)}</div></div><strong>{String(i + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}</strong></div>
-    <article className="question-sheet"><div className={`question-timer ${remaining <= 5000 ? "urgent" : ""} ${timeExpired ? "expired" : ""}`} role="timer" aria-live="off" aria-label={timeExpired ? "Time expired" : `${Math.ceil(remaining / 1000)} seconds remaining`}><span><Clock3 /> {timeExpired ? "Time expired" : "Time remaining"}</span><strong>{(remaining / 1000).toFixed(1)}s</strong><i><b style={{ transform: `scaleX(${remaining / QUESTION_TIME_LIMIT_MS})` }} /></i></div><div className="question-label"><span>Edition {edition}</span><b>{q.category}</b><small>{topic}</small></div><h1>{prompt}</h1>
+    <article className="question-sheet"><div className={`question-timer ${remaining <= 5000 ? "urgent" : ""} ${timeExpired ? "expired" : ""}`} role="timer" aria-live="off" aria-label={timeExpired ? "Time expired" : `${Math.ceil(remaining / 1000)} seconds remaining`}><span><Clock3 aria-hidden="true" /> {timeExpired ? "Time expired" : "Time remaining"}</span><strong>{(remaining / 1000).toFixed(1)}s</strong><div className="question-timer-track" aria-hidden="true"><span className="question-timer-fill" style={{ transform: `scaleX(${timeRemainingRatio})` }} /></div></div><div className="question-label"><span>Edition {edition}</span><b>{q.category}</b><small>{topic}</small></div><h1>{prompt}</h1>
       {feedback === null ? <form onSubmit={(event) => { event.preventDefault(); void submit(); }}>
         {usesOptions
           ? <fieldset className="answer-options"><legend>Choose one answer</legend>{options.map((option, index) => {
